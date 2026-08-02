@@ -130,17 +130,39 @@ struct PracticeView: View {
 
     private var runningContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text(String(format: "%.1fs elapsed", session.elapsedTime))
-                    .font(.subheadline)
+            HStack(spacing: 12) {
+                Text(String(format: "%.1fs", session.elapsedTime))
+                    .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
                 metronomeLight
                 Spacer()
+                strokeCounter
                 streakBadge
             }
             overlayChart
+            Text("Dashed line = a perfect run")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             hitMissSummary
         }
+    }
+
+    /// How many targets have been graded so far, out of the pattern's
+    /// total - a target stays uncounted until its timing window closes,
+    /// so this tracks progress through the drill rather than just how
+    /// many strokes you've physically made.
+    private var strokeCounter: some View {
+        var resolved = 0
+        for status in session.statuses where status != .upcoming {
+            resolved += 1
+        }
+        return HStack(spacing: 4) {
+            Text("\(resolved)/\(session.statuses.count)")
+                .font(.system(size: 17, weight: .semibold, design: .rounded).monospacedDigit())
+            Text("strokes")
+                .font(.caption)
+        }
+        .foregroundStyle(.secondary)
     }
 
     private var streakBadge: some View {
@@ -181,8 +203,8 @@ struct PracticeView: View {
         let totalBeats = max(DrillTimeline.totalDuration(pattern: session.pattern) / beatDuration, 1)
         let targets = Array(zip(session.pattern.strokes, session.statuses))
         let liveSamples = session.liveSamples
-        let barLineOffset = barLineOffsetBeats(for: session.pattern)
-        let barCount = max(session.pattern.bars, 1)
+        let barSeparators = barSeparatorBeats(for: session.pattern)
+        let perfectRun = PerfectRunCurve.points(for: session.pattern)
 
         func xPosition(beat: Double, width: CGFloat) -> CGFloat {
             CGFloat(beat / totalBeats) * width
@@ -194,18 +216,38 @@ struct PracticeView: View {
 
         return Canvas { context, size in
             // Bar separators, so the strokes read as bars of eight rather
-            // than one undifferentiated row of dots. Nudged back half a
-            // stroke from the exact bar boundary - drawn right on it, the
-            // line lands on top of the dot that starts the bar instead of
-            // separating it from the previous one.
+            // than one undifferentiated row of dots.
             var barLines = Path()
-            for bar in 1..<barCount {
-                let boundaryBeat: Double = Double(bar) * DrillTimeline.beatsPerBar - barLineOffset
-                let x = xPosition(beat: boundaryBeat, width: size.width)
+            for beat in barSeparators {
+                let x = xPosition(beat: beat, width: size.width)
                 barLines.move(to: CGPoint(x: x, y: 0))
                 barLines.addLine(to: CGPoint(x: x, y: size.height))
             }
             context.stroke(barLines, with: .color(.gray.opacity(0.3)), lineWidth: 1)
+
+            // The reference perfect run, behind everything else: every
+            // target on time, in the right direction, peaking exactly at
+            // its dot. This is the shape to aim at - your live trace
+            // tracing over it is what a 100 looks like.
+            if perfectRun.count > 1 {
+                var ghost = Path()
+                for (index, point) in perfectRun.enumerated() {
+                    let position = CGPoint(
+                        x: xPosition(beat: point.beat, width: size.width),
+                        y: yPosition(value: point.normalizedVelocity, height: size.height)
+                    )
+                    if index == 0 {
+                        ghost.move(to: position)
+                    } else {
+                        ghost.addLine(to: position)
+                    }
+                }
+                context.stroke(
+                    ghost,
+                    with: .color(.white.opacity(0.25)),
+                    style: StrokeStyle(lineWidth: 1, dash: [3, 3])
+                )
+            }
 
             if liveSamples.count > 1 {
                 var path = Path()
@@ -235,25 +277,32 @@ struct PracticeView: View {
         .frame(height: 220)
     }
 
-    /// Half the smallest gap between consecutive targets. Bar boundaries
-    /// land exactly on a target (the strokes are on an even subdivision of
-    /// the bar), so a line drawn at the boundary collides with that dot -
-    /// backing it off by half a stroke puts it in the empty space between
-    /// two dots instead. Derived from the pattern rather than hardcoded so
-    /// it still lands correctly for a drill on a different subdivision.
-    private func barLineOffsetBeats(for pattern: ScratchPattern) -> Double {
+    /// Where each bar separator goes, in beats: exactly halfway between
+    /// the last target of one bar and the first target of the next.
+    ///
+    /// Taking the midpoint of the two dots that straddle the boundary is
+    /// what actually centres the line. Drawing it at the bar boundary
+    /// puts it on top of a dot (targets sit on an even subdivision of the
+    /// bar), and backing off by a fixed half-stroke only centres where a
+    /// dot really does precede the boundary - which isn't true at the end
+    /// of the empty lead-in bar, where there's no preceding dot at all
+    /// and the line just floats in open space.
+    private func barSeparatorBeats(for pattern: ScratchPattern) -> [Double] {
         let positions: [Double] = pattern.strokes.map(\.beatPosition)
-        guard positions.count > 1 else { return 0.25 }
+        guard positions.count > 1 else { return [] }
 
-        var smallestGap = Double.greatestFiniteMagnitude
+        let beatsPerBar: Double = DrillTimeline.beatsPerBar
+        var separators: [Double] = []
         for index in 1..<positions.count {
-            let gap = positions[index] - positions[index - 1]
-            if gap > 0, gap < smallestGap {
-                smallestGap = gap
+            let previous: Double = positions[index - 1]
+            let current: Double = positions[index]
+            let previousBar: Int = Int(floor(previous / beatsPerBar))
+            let currentBar: Int = Int(floor(current / beatsPerBar))
+            if currentBar != previousBar {
+                separators.append((previous + current) / 2)
             }
         }
-        guard smallestGap < .greatestFiniteMagnitude else { return 0.25 }
-        return smallestGap / 2
+        return separators
     }
 
     private func color(for status: TargetStrokeStatus) -> Color {

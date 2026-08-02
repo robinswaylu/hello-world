@@ -99,6 +99,67 @@ final class DrillScorerTests: XCTestCase {
     }
 }
 
+final class PerfectRunCurveTests: XCTestCase {
+    private func twoStrokePattern() -> ScratchPattern {
+        ScratchPattern(
+            id: "t",
+            name: "t",
+            bpm: 120,
+            bars: 1,
+            strokes: [
+                TargetStroke(beatPosition: 0, direction: .forward, relativeDisplacement: nil, timingToleranceMs: 100),
+                TargetStroke(beatPosition: 0.5, direction: .back, relativeDisplacement: nil, timingToleranceMs: 100),
+            ],
+            beatLoopAsset: nil,
+            defaultSampleAsset: "x"
+        )
+    }
+
+    func testEachStrokePeaksAtOnTargetAmplitudeInItsOwnDirection() {
+        let points = PerfectRunCurve.points(for: twoStrokePattern())
+        XCTAssertFalse(points.isEmpty)
+
+        // The forward stroke spans beats 0 -> 0.5, so it must rise to
+        // exactly +1 (on-target amplitude, the height its dot is drawn at).
+        let forwardValues: [Double] = points.filter { $0.beat > 0 && $0.beat < 0.5 }.map(\.normalizedVelocity)
+        XCTAssertEqual(forwardValues.max() ?? 0, 1.0, accuracy: 0.001)
+
+        // The back stroke spans 0.5 -> 1.0 and must dip to -1, not +1.
+        let backValues: [Double] = points.filter { $0.beat > 0.5 && $0.beat < 1.0 }.map(\.normalizedVelocity)
+        XCTAssertEqual(backValues.min() ?? 0, -1.0, accuracy: 0.001)
+    }
+
+    func testCurveNeverOvershootsOnTargetAmplitude() {
+        let points = PerfectRunCurve.points(for: twoStrokePattern())
+        // Overshooting would draw the ghost above its own dots, which
+        // would make the thing it's meant to demonstrate wrong.
+        XCTAssertTrue(points.allSatisfy { abs($0.normalizedVelocity) <= 1.0001 })
+    }
+
+    func testCurveStartsAtTheFirstTargetNotAtBeatZero() {
+        // The built-in drills open with an empty lead-in bar, so the first
+        // target sits a full bar in. The curve has to start there too -
+        // starting at beat 0 would draw the whole ghost a bar early and
+        // out of sync with the dots it's supposed to line up with.
+        let pattern = ScratchPattern(
+            id: "t",
+            name: "t",
+            bpm: 120,
+            bars: 2,
+            strokes: [TargetStroke(beatPosition: 4, direction: .forward, relativeDisplacement: nil, timingToleranceMs: 100)],
+            beatLoopAsset: nil,
+            defaultSampleAsset: "x"
+        )
+        let points = PerfectRunCurve.points(for: pattern)
+        XCTAssertEqual(points.first?.beat ?? -1, 4, accuracy: 0.0001)
+    }
+
+    func testEmptyPatternProducesNoPoints() {
+        let pattern = ScratchPattern(id: "t", name: "t", bpm: 120, bars: 1, strokes: [], beatLoopAsset: nil, defaultSampleAsset: "x")
+        XCTAssertTrue(PerfectRunCurve.points(for: pattern).isEmpty)
+    }
+}
+
 final class DrillScorerIncrementalTests: XCTestCase {
     private func twoTargetPattern() -> ScratchPattern {
         ScratchPattern(

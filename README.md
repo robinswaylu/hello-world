@@ -250,9 +250,11 @@ This repo currently contains:
 
 1. Switch to the **Drills** tab. Currently just the baby scratch family:
    80/90/120 BPM.
-2. Tap a drill to open its detail screen. Tap **Preview** to hear a demo
-   of the target pattern (a real accelerate/decelerate scratch stroke per
-   target, not just a tone).
+2. Tap a drill to open its detail screen. It charts a **perfect run** —
+   every target on time, in the right direction, each hump peaking exactly
+   at its dot — so you can see the shape you're aiming for before you
+   start. Tap **Preview** to hear it too (a real accelerate/decelerate
+   scratch stroke per target, not just a tone).
 3. Tap **Start Practice**. A metronome starts immediately and a 3-2-1
    countdown runs one beat per count. The countdown screen also shows an
    arrow for the first stroke's direction (up = forward, down = back) —
@@ -268,11 +270,14 @@ This repo currently contains:
 5. Live audio scratches as you move the platter (same engine as the
    Scratch tab), and the chart shows target strokes colored by grade
    (gray = upcoming, yellow = perfect, green = great, cyan = good, orange
-   = poor, red = missed) with your live velocity curve overlaid and faint
-   vertical lines marking each bar boundary — offset half a stroke so
-   they sit in the gap between dots rather than on top of one. Each
-   stroke pops a judgement (PERFECT!/GREAT/GOOD/POOR/MISSED) the instant
-   it's graded, and a streak counter tracks consecutive good-enough hits.
+   = poor, red = missed) with your live velocity curve overlaid. The same
+   perfect run from the detail screen is drawn faintly behind it as a
+   dashed line — your trace following that dashed shape is what a 100
+   looks like. Faint vertical lines mark each bar boundary, placed at the
+   exact midpoint between the two dots that straddle it. Each stroke pops
+   a judgement (PERFECT!/GREAT/GOOD/POOR/MISSED) the instant it's graded;
+   the header carries a live stroke counter (graded / total) and a streak
+   counter for consecutive good-enough hits.
 6. The drill auto-stops once its bars are up and shows a score breakdown
    with a grade per stroke, plus a **Replay** button that restarts the same
    drill (3-2-1 countdown and all) without backing out to the drill list.
@@ -346,8 +351,12 @@ On first launch you'll get a 3-step flow instead of the main tabs:
 - Phase 2 logic: the read-head's forward/reverse/fractional-rate math,
   rate ramping (the anti-zipper mechanism), loop crossfading, and the
   placeholder sine sweep generator
-- Phase 3 logic: beat-grid timing math and live hit/upcoming/missed status
-  derivation (`DrillTimeline`, `DrillScorer`)
+- Phase 3 logic: beat-grid timing math, live hit/upcoming/missed status
+  derivation (`DrillTimeline`, `DrillScorer`), and the reference perfect-run
+  curve — that each hump peaks at exactly on-target amplitude in its own
+  direction, never overshoots its dots, and starts at the first target
+  rather than beat 0 so it stays aligned past the lead-in bar
+  (`PerfectRunCurve`)
 - Phase 4 logic: screen-up/down orientation detection from the gravity
   vector (`OrientationCalibrator`)
 
@@ -379,6 +388,7 @@ ScratchLab/
     SineSweepGenerator.swift Placeholder tone generator
     DrillTimeline.swift      Beat grid -> wall-clock seconds
     DrillScorer.swift        Live hit/upcoming/missed status per target stroke
+    PerfectRunCurve.swift    Reference "perfect run" trace for a pattern
     OrientationCalibrator.swift  Screen-up/down detection from gravity.z
   Audio/
     LatencyClickPlayer.swift    Phase 0's click-on-threshold probe
