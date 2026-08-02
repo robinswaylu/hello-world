@@ -2,7 +2,7 @@ import Foundation
 
 enum TargetStrokeStatus: Equatable {
     case upcoming
-    case hit(score: Double)
+    case hit(grade: StrokeGrade, score: Double)
     case missed
 }
 
@@ -17,7 +17,7 @@ enum DrillScorer {
         return pattern.strokes.indices.map { index in
             let score = result.strokeScores[index]
             if score.matched {
-                return .hit(score: score.score)
+                return .hit(grade: score.grade, score: score.score)
             }
 
             let target = pattern.strokes[index]

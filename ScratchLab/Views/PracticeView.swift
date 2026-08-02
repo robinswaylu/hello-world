@@ -7,7 +7,8 @@ struct PracticeView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var session: PracticeSession
     @AppStorage("hapticsEnabled") private var hapticsEnabled = false
-    @State private var previousStatuses: [TargetStrokeStatus] = []
+    @State private var popupJudgement: Judgement?
+    @State private var streakPulse = false
 
     init(pattern: ScratchPattern) {
         _session = StateObject(wrappedValue: PracticeSession(pattern: pattern))
@@ -32,37 +33,86 @@ struct PracticeView: View {
         .navigationBarBackButtonHidden(session.phase == .running)
         .onAppear { session.start(modelContext: modelContext) }
         .onDisappear { session.stop() }
-        .onChange(of: session.statuses) { _, newStatuses in
-            handleStatusChange(newStatuses)
+        .onChange(of: session.latestJudgement) { _, newValue in
+            handleNewJudgement(newValue)
+        }
+        .onChange(of: session.streak) { _, _ in
+            pulseStreak()
+        }
+        .overlay(alignment: .top) {
+            if let popupJudgement {
+                Text(label(for: popupJudgement.grade))
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .foregroundStyle(color(forGrade: popupJudgement.grade))
+                    .shadow(radius: 4)
+                    .padding(.top, 24)
+                    .transition(.scale(scale: 1.4).combined(with: .opacity))
+                    .id(popupJudgement.id)
+            }
         }
     }
 
-    private func handleStatusChange(_ newStatuses: [TargetStrokeStatus]) {
-        defer { previousStatuses = newStatuses }
-        guard hapticsEnabled else { return }
+    @MainActor
+    private func handleNewJudgement(_ judgement: Judgement?) {
+        guard let judgement else { return }
 
-        for (index, status) in newStatuses.enumerated() {
-            let previous = index < previousStatuses.count ? previousStatuses[index] : .upcoming
-            guard previous == .upcoming else { continue }
-            switch status {
-            case .hit:
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            case .missed:
-                UINotificationFeedbackGenerator().notificationOccurred(.error)
-            case .upcoming:
-                break
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.55)) {
+            popupJudgement = judgement
+        }
+        let id = judgement.id
+        Task {
+            try? await Task.sleep(nanoseconds: 650_000_000)
+            guard popupJudgement?.id == id else { return }
+            withAnimation(.easeOut(duration: 0.25)) {
+                popupJudgement = nil
             }
+        }
+
+        guard hapticsEnabled else { return }
+        switch judgement.grade {
+        case .perfect, .great:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        case .good:
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        case .poor, .missed:
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
+    @MainActor
+    private func pulseStreak() {
+        guard session.streak > 0 else { return }
+        streakPulse = true
+        Task {
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            streakPulse = false
         }
     }
 
     private var runningContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(String(format: "%.1fs elapsed", session.elapsedTime))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            HStack {
+                Text(String(format: "%.1fs elapsed", session.elapsedTime))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                streakBadge
+            }
             overlayChart
             hitMissSummary
         }
+    }
+
+    private var streakBadge: some View {
+        HStack(spacing: 4) {
+            Text("\(session.streak)")
+                .font(.system(size: 22, weight: .black, design: .rounded))
+            Text("streak")
+                .font(.caption)
+        }
+        .foregroundStyle(session.streak > 0 ? Color.orange : Color.secondary)
+        .scaleEffect(streakPulse ? 1.3 : 1.0)
+        .animation(.spring(response: 0.2, dampingFraction: 0.4), value: streakPulse)
     }
 
     private var overlayChart: some View {
@@ -93,16 +143,44 @@ struct PracticeView: View {
     private func color(for status: TargetStrokeStatus) -> Color {
         switch status {
         case .upcoming: return Color.gray.opacity(0.4)
-        case .hit: return Color.green
+        case .hit(let grade, _): return color(forGrade: grade)
+        case .missed: return color(forGrade: .missed)
+        }
+    }
+
+    private func color(forGrade grade: StrokeGrade) -> Color {
+        switch grade {
+        case .perfect: return Color.yellow
+        case .great: return Color.green
+        case .good: return Color.cyan
+        case .poor: return Color.orange
         case .missed: return Color.red
         }
     }
 
+    private func label(for grade: StrokeGrade) -> String {
+        switch grade {
+        case .perfect: return "PERFECT!"
+        case .great: return "GREAT"
+        case .good: return "GOOD"
+        case .poor: return "POOR"
+        case .missed: return "MISSED"
+        }
+    }
+
     private var hitMissSummary: some View {
-        let hits = session.statuses.filter { if case .hit = $0 { return true }; return false }.count
-        let misses = session.statuses.filter { if case .missed = $0 { return true }; return false }.count
-        let upcoming = session.statuses.count - hits - misses
-        return Text("\(hits) hit · \(misses) missed · \(upcoming) upcoming")
-            .font(.subheadline)
+        var counts: [StrokeGrade: Int] = [:]
+        for status in session.statuses {
+            switch status {
+            case .hit(let grade, _): counts[grade, default: 0] += 1
+            case .missed: counts[.missed, default: 0] += 1
+            case .upcoming: break
+            }
+        }
+        let upcoming = session.statuses.count - counts.values.reduce(0, +)
+
+        return Text("Perfect \(counts[.perfect] ?? 0) · Great \(counts[.great] ?? 0) · Good \(counts[.good] ?? 0) · Poor \(counts[.poor] ?? 0) · Missed \(counts[.missed] ?? 0) · \(upcoming) upcoming")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 }

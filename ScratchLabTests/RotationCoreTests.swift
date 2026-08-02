@@ -166,14 +166,17 @@ final class PatternMatcherTests: XCTestCase {
         XCTAssertTrue(result.strokeScores.allSatisfy(\.matched))
     }
 
-    func testWrongDirectionLosesThirtyPoints() {
+    func testWrongDirectionIsCappedAtPoorRegardlessOfTiming() {
         let pattern = babyScratchPattern()
         let performed = [
             ScratchStroke(startTime: 0, endTime: 0.1, direction: .back, peakVelocity: 3, displacement: 0.5),
             ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: 3, displacement: 0.5),
         ]
         let result = PatternMatcher.match(pattern: pattern, performed: performed)
-        XCTAssertEqual(result.strokeScores[0].score, 70, accuracy: 0.5)
+        // Perfect timing (0ms error) but wrong direction: capped at .poor
+        // with only small consolation credit, not scaled down from 100.
+        XCTAssertEqual(result.strokeScores[0].grade, .poor)
+        XCTAssertEqual(result.strokeScores[0].score, 20, accuracy: 0.5)
     }
 
     func testMissingStrokeScoresZeroAndIsUnmatched() {
@@ -181,16 +184,21 @@ final class PatternMatcherTests: XCTestCase {
         let result = PatternMatcher.match(pattern: pattern, performed: [])
         XCTAssertEqual(result.overallScore, 0)
         XCTAssertTrue(result.strokeScores.allSatisfy { !$0.matched })
+        XCTAssertTrue(result.strokeScores.allSatisfy { $0.grade == .missed })
     }
 
-    func testDisplacementOutOfRangeLosesTenPoints() {
+    func testDisplacementOutOfRangeIsRecordedButDoesNotAffectScore() {
         let pattern = babyScratchPattern()
         let performed = [
             ScratchStroke(startTime: 0, endTime: 0.1, direction: .forward, peakVelocity: 3, displacement: 5.0),
             ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: 3, displacement: 0.5),
         ]
         let result = PatternMatcher.match(pattern: pattern, performed: performed)
-        XCTAssertEqual(result.strokeScores[0].score, 90, accuracy: 0.5)
+        // Displacement isn't part of the score (no built-in drill currently
+        // constrains it) - perfect timing + correct direction is still 100.
+        XCTAssertFalse(result.strokeScores[0].displacementOk)
+        XCTAssertEqual(result.strokeScores[0].grade, .perfect)
+        XCTAssertEqual(result.strokeScores[0].score, 100, accuracy: 0.5)
     }
 }
 

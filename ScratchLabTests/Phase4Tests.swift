@@ -18,7 +18,11 @@ final class OrientationCalibratorTests: XCTestCase {
     }
 
     func testSignMultiplierMatchesOrientation() {
-        XCTAssertEqual(OrientationCalibrator.signMultiplier(for: .screenUp), 1.0)
-        XCTAssertEqual(OrientationCalibrator.signMultiplier(for: .screenDown), -1.0)
+        // Screen-up: positive rotationRate.z is counterclockwise-from-above,
+        // which is backward on a real (clockwise-from-above) turntable, so
+        // it needs a negative multiplier to match our "positive = forward"
+        // convention. Screen-down is the opposite correction.
+        XCTAssertEqual(OrientationCalibrator.signMultiplier(for: .screenUp), -1.0)
+        XCTAssertEqual(OrientationCalibrator.signMultiplier(for: .screenDown), 1.0)
     }
 }

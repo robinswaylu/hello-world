@@ -8,6 +8,13 @@ enum PracticePhase: Equatable {
     case finished
 }
 
+/// A single stroke's judgement as it happens, tagged with a unique id so
+/// the UI can retrigger a popup/haptic even for repeated grades in a row.
+struct Judgement: Equatable {
+    let grade: StrokeGrade
+    let id: UUID
+}
+
 /// Drives one practice attempt: countdown, live motion capture through
 /// Phase 1's signal core, live audio through Phase 2's engine, a metronome
 /// for tempo reference, live scoring against the target pattern, and
@@ -20,6 +27,9 @@ final class PracticeSession: ObservableObject {
     @Published private(set) var statuses: [TargetStrokeStatus]
     @Published private(set) var liveSamples: [(timestamp: TimeInterval, velocity: Double)] = []
     @Published private(set) var finalResult: MatchResult?
+    @Published private(set) var streak: Int = 0
+    @Published private(set) var bestStreak: Int = 0
+    @Published private(set) var latestJudgement: Judgement?
 
     let pattern: ScratchPattern
 
@@ -34,6 +44,7 @@ final class PracticeSession: ObservableObject {
     private var countdownTask: Task<Void, Never>?
     private var startTimestamp: TimeInterval?
     private let totalDuration: TimeInterval
+    private let beatDuration: TimeInterval
 
     init(pattern: ScratchPattern, rotationStream: RotationStream = RotationStream()) {
         self.pattern = pattern
@@ -43,15 +54,22 @@ final class PracticeSession: ObservableObject {
             sampleRate: SampleLibrary.engineSampleRate
         )
         self.totalDuration = DrillTimeline.totalDuration(pattern: pattern)
+        self.beatDuration = DrillTimeline.beatDuration(bpm: pattern.bpm)
         self.statuses = pattern.strokes.map { _ in .upcoming }
     }
 
     func start(modelContext: ModelContext) {
         stop()
+        // Metronome runs through the count-in too, and each countdown step
+        // takes one beat, so "3, 2, 1" actually lands on the click instead
+        // of an arbitrary fixed second.
+        metronome.start(bpm: pattern.bpm)
+        UIApplication.shared.isIdleTimerDisabled = true
+
         countdownTask = Task {
             for count in stride(from: 3, through: 1, by: -1) {
                 phase = .countdown(count)
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(beatDuration * 1_000_000_000))
             }
             guard !Task.isCancelled else { return }
             beginRun(modelContext: modelContext)
@@ -74,11 +92,9 @@ final class PracticeSession: ObservableObject {
         startTimestamp = nil
         elapsedTime = 0
         liveSamples = []
+        streak = 0
+        bestStreak = 0
         try? audioEngine.start()
-        metronome.start(bpm: pattern.bpm)
-        // The user's hands are on the platter, not the screen — don't let
-        // it auto-lock mid-drill.
-        UIApplication.shared.isIdleTimerDisabled = true
 
         streamTask = Task {
             for await sample in rotationStream.samples() {
@@ -104,10 +120,39 @@ final class PracticeSession: ObservableObject {
 
         liveSamples.append((timestamp: elapsed, velocity: smoothed))
         let strokes = segmenter.segment(liveSamples)
-        statuses = DrillScorer.statuses(pattern: pattern, performed: strokes, elapsedTime: elapsed)
+        let newStatuses = DrillScorer.statuses(pattern: pattern, performed: strokes, elapsedTime: elapsed)
+        applyNewJudgements(previous: statuses, current: newStatuses)
+        statuses = newStatuses
 
         if elapsed >= totalDuration {
             finish(strokes: strokes, modelContext: modelContext)
+        }
+    }
+
+    /// A target only just now stopped being `.upcoming` - that's the moment
+    /// to update the streak and surface a judgement for the UI to react to
+    /// (popup text, haptic), rather than re-firing on every sample while it
+    /// stays in the same resolved state.
+    private func applyNewJudgements(previous: [TargetStrokeStatus], current: [TargetStrokeStatus]) {
+        for index in current.indices {
+            let previousStatus = index < previous.count ? previous[index] : .upcoming
+            guard previousStatus == .upcoming, current[index] != .upcoming else { continue }
+
+            let grade: StrokeGrade
+            switch current[index] {
+            case .hit(let hitGrade, _): grade = hitGrade
+            case .missed: grade = .missed
+            case .upcoming: continue
+            }
+
+            switch grade {
+            case .perfect, .great, .good:
+                streak += 1
+                bestStreak = max(bestStreak, streak)
+            case .poor, .missed:
+                streak = 0
+            }
+            latestJudgement = Judgement(grade: grade, id: UUID())
         }
     }
 

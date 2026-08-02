@@ -41,20 +41,24 @@ final class DrillScorerTests: XCTestCase {
         let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .forward, peakVelocity: 3, displacement: 0.5)
         let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
 
-        guard case .hit(let score) = statuses[0] else {
+        guard case .hit(let grade, let score) = statuses[0] else {
             return XCTFail("expected a hit, got \(statuses[0])")
         }
+        XCTAssertEqual(grade, .perfect)
         XCTAssertEqual(score, 100, accuracy: 0.5)
     }
 
-    func testWrongDirectionStillCountsAsHitWithLowerScore() {
+    func testWrongDirectionIsGradedPoorWithLowScore() {
         let pattern = singleTargetPattern()
         let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .back, peakVelocity: 3, displacement: 0.5)
         let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
 
-        guard case .hit(let score) = statuses[0] else {
+        guard case .hit(let grade, let score) = statuses[0] else {
             return XCTFail("expected a hit (matched but wrong direction), got \(statuses[0])")
         }
-        XCTAssertEqual(score, 70, accuracy: 0.5)
+        // Wrong direction is capped at .poor even with perfect timing - it's
+        // a different move, not an imprecise version of the right one.
+        XCTAssertEqual(grade, .poor)
+        XCTAssertEqual(score, 20, accuracy: 0.5)
     }
 }

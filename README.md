@@ -28,8 +28,8 @@ This repo currently contains:
   curve) with live hit/miss status → an end screen with a per-stroke score
   breakdown, using Phase 1's `PatternMatcher`. Results persist via
   SwiftData so the drill list shows your best score per drill.
-- **Phase 4**: content & polish. All 6 spec'd built-in drills (baby scratch
-  slow/fast, drag, scribble, release-timing, tempo ladder); a first-launch
+- **Phase 4**: content & polish. Built-in drills (see below for the current
+  set); a first-launch
   onboarding flow (placement guide → a real orientation calibration step →
   audio-route check); haptic feedback on drill hit/miss, off by default
   because the phone sits on the platter during capture and vibration
@@ -48,6 +48,36 @@ This repo currently contains:
   `SampleLibrary`/`AVAudioConverter`. The programmatic sine sweep
   (`SineSweepGenerator`) is kept as an automatic fallback if the bundled
   sample ever fails to load, so the engine is never silent.
+- **Practice feel pass**, after watching a real recorded attempt surface
+  several issues:
+  - **Forward/backward were inverted.** Positive raw gyro Z (screen-up) is
+    counterclockwise-from-above, which is *backward* on a real turntable
+    (records spin clockwise from above during normal playback) —
+    `OrientationCalibrator`'s sign convention was backwards. Fixed; this
+    affects both scratch audio direction and stroke-direction scoring.
+  - **Scoring was too generous.** A stroke with perfect timing but the
+    *wrong direction* used to still score 70/100. Direction is now a gate,
+    not a bonus — wrong direction caps a stroke at `.poor` regardless of
+    timing. Correct-direction strokes are graded in rhythm-game-style bands
+    (`StrokeGrade`: perfect/great/good/poor) instead of one linear scale,
+    so a true, reachable 100 only happens within a tight timing window.
+  - **Live judgement, streaks, haptics.** Each stroke now pops a
+    PERFECT!/GREAT/GOOD/POOR/MISSED judgement the instant it's graded, a
+    streak counter pulses on every consecutive good-enough hit and resets
+    on a poor/missed one, and haptic feedback (still off by default) is
+    graded too — a firm tap for perfect/great, lighter for good, an error
+    buzz for poor/missed.
+  - **Metronome now runs through the 3-2-1 countdown**, one beat per
+    count, so the count-in is actually musical instead of a silent
+    generic 3-second wait before the click starts.
+  - **The drill preview sounded like fast-forward/rewind**, not a scratch
+    — it held a constant rate for each stroke's whole duration.
+    `DrillPreviewPlayer` now ramps each stroke through a half-sine
+    velocity envelope (0 → peak → 0), mimicking a real hand's
+    accelerate-decelerate motion.
+  - **Drill list trimmed** to just the baby scratch family (80/90/120 BPM)
+    while this feel is being tuned; drag/scribble/release-timing/tempo
+    ladder will come back once it's right.
 
 ## Requirements
 
@@ -82,16 +112,22 @@ This repo currently contains:
 
 ## Using the Phase 3 drill player
 
-1. Switch to the **Drills** tab.
-2. Tap a drill (e.g. "Baby Scratch (80 BPM)") to open its detail screen.
-   Tap **Preview** to hear a rough demo of the target pattern.
-3. Tap **Start Practice**. A 3-2-1 countdown runs, then the drill
-   auto-starts: a metronome click keeps time, live audio scratches as you
-   move the platter (same engine as the Scratch tab), and the chart shows
-   target strokes (gray = upcoming, green = hit, red = missed) with your
-   live velocity curve overlaid.
-4. The drill auto-stops once its bars are up and shows a score breakdown.
-   Backing out and reopening the drill shows your best score in the list.
+1. Switch to the **Drills** tab. Currently just the baby scratch family:
+   80/90/120 BPM.
+2. Tap a drill to open its detail screen. Tap **Preview** to hear a demo
+   of the target pattern (a real accelerate/decelerate scratch stroke per
+   target, not just a tone).
+3. Tap **Start Practice**. A metronome starts immediately and a 3-2-1
+   countdown runs one beat per count, then the drill auto-starts: live
+   audio scratches as you move the platter (same engine as the Scratch
+   tab), and the chart shows target strokes colored by grade (gray =
+   upcoming, yellow = perfect, green = great, cyan = good, orange = poor,
+   red = missed) with your live velocity curve overlaid. Each stroke pops
+   a judgement (PERFECT!/GREAT/GOOD/POOR/MISSED) the instant it's graded,
+   and a streak counter tracks consecutive good-enough hits.
+4. The drill auto-stops once its bars are up and shows a score breakdown
+   with a grade per stroke. Backing out and reopening the drill shows your
+   best score in the list.
 
 ## First launch (onboarding)
 
@@ -160,7 +196,7 @@ ScratchLab/
     BaselineEstimator.swift  33/45/motor-off detection + bias re-zeroing
     VelocitySmoother.swift   Low-pass + slew limiting for the audio engine
     GestureSegmenter.swift   Splits a velocity stream into ScratchStrokes
-    PatternMatcher.swift     Scores performed strokes against a ScratchPattern
+    PatternMatcher.swift     Scores performed strokes against a ScratchPattern (StrokeGrade)
     ReadHead.swift           Phase 2's fractional read-head + rate ramping
     LoopCrossfader.swift     Bakes a click-free crossfade into the loop point
     SineSweepGenerator.swift Placeholder tone generator
@@ -176,7 +212,7 @@ ScratchLab/
     DrillPreviewPlayer.swift    Rough audio preview of a drill's target pattern
     SampleLibrary.swift         Loads/converts bundled audio -> mono Float32
   Drill/
-    BuiltInDrills.swift      Built-in ScratchPattern content (all 6 drills)
+    BuiltInDrills.swift      Built-in ScratchPattern content (baby scratch family)
     DrillResult.swift        SwiftData @Model for persisted scores
     PracticeSession.swift    Countdown -> live capture/scoring -> persistence
     CalibrationStore.swift   Persists the calibration sign correction

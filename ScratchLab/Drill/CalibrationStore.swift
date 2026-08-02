@@ -8,7 +8,7 @@ enum CalibrationStore {
     static var signMultiplier: Double {
         get {
             let stored = UserDefaults.standard.double(forKey: key)
-            return stored == 0 ? 1.0 : stored // uncalibrated defaults to screen-up
+            return stored == 0 ? OrientationCalibrator.signMultiplier(for: .screenUp) : stored
         }
         set {
             UserDefaults.standard.set(newValue, forKey: key)
