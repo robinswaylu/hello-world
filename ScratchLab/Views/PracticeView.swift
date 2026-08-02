@@ -23,7 +23,9 @@ struct PracticeView: View {
                 runningContent
             case .finished:
                 if let result = session.finalResult {
-                    DrillResultView(pattern: session.pattern, result: result)
+                    DrillResultView(pattern: session.pattern, result: result) {
+                        session.start(modelContext: modelContext)
+                    }
                 }
             }
         }

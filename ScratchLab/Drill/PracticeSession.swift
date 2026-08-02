@@ -154,6 +154,7 @@ final class PracticeSession: ObservableObject {
         uiSampleCounter = 0
         streak = 0
         bestStreak = 0
+        latestJudgement = nil // clear the previous attempt's popup trigger, if replaying
         try? audioEngine.start()
 
         streamTask = Task {

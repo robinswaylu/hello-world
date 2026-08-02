@@ -4,6 +4,7 @@ import Charts
 struct DrillResultView: View {
     let pattern: ScratchPattern
     let result: MatchResult
+    let onReplay: () -> Void
 
     var body: some View {
         ScrollView {
@@ -12,6 +13,9 @@ struct DrillResultView: View {
                     .font(.largeTitle.bold())
 
                 gradeSummary
+
+                Button("Replay", action: onReplay)
+                    .buttonStyle(.borderedProminent)
 
                 Chart(Array(result.strokeScores.enumerated()), id: \.offset) { _, score in
                     BarMark(
