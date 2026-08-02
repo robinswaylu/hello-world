@@ -49,6 +49,7 @@ final class PracticeSession: ObservableObject {
     @Published private(set) var bestStreak: Int = 0
     @Published private(set) var latestJudgement: Judgement?
     @Published private(set) var beatTick: Int = 0
+    @Published private(set) var isDownbeatTick: Bool = true
 
     let pattern: ScratchPattern
 
@@ -85,6 +86,7 @@ final class PracticeSession: ObservableObject {
     private var recentCompletedStrokes: [ScratchStroke] = []
     private let strokeRetentionSeconds: TimeInterval = 3
     private var lastComputedStatuses: [TargetStrokeStatus]
+    private var hasCalibratedThisRun = false
 
     // Rolling window for the chart display only - bounded regardless of
     // how long the drill runs, unlike the strokes/statuses above which
@@ -111,26 +113,48 @@ final class PracticeSession: ObservableObject {
 
     func start(modelContext: ModelContext) {
         stop()
-        // Metronome runs through the count-in too, and each countdown step
-        // takes one beat, so "3, 2, 1" actually lands on the click instead
-        // of an arbitrary fixed second. onTick fires from the metronome's
-        // own tick loop, not the main actor, so the visual pulse this
-        // drives has to hop back explicitly.
-        metronome.onTick = { [weak self] in
+
+        // One anchor for the click, the count-in, and the scoring grid.
+        //
+        // This is what actually phase-locks the metronome to the targets.
+        // The grid used to start from whenever CoreMotion's first sample
+        // happened to arrive after the countdown, while the click started
+        // when this method was called - two independent anchors separated
+        // by the count-in, `audioEngine.start()`, and CoreMotion's spin-up
+        // time, none of it measured. Whatever that gap came out to on a
+        // given run became a fixed offset applied to every target in the
+        // drill, so "play exactly on the click" didn't reliably score
+        // well. CMDeviceMotion timestamps share systemUptime's base, so a
+        // grid start expressed in this clock is directly comparable to
+        // them.
+        let anchor = ProcessInfo.processInfo.systemUptime
+        let runStart = anchor + Double(Self.countdownBeats) * beatDuration
+
+        // onTick fires from the metronome's own tick loop, not the main
+        // actor, so the visual pulse this drives has to hop back.
+        metronome.onTick = { [weak self] isDownbeat in
             Task { @MainActor in
                 self?.beatTick += 1
+                self?.isDownbeatTick = isDownbeat
             }
         }
-        metronome.start(bpm: pattern.bpm)
+        metronome.start(bpm: pattern.bpm, anchor: anchor)
         UIApplication.shared.isIdleTimerDisabled = true
 
         countdownTask = Task {
-            for count in stride(from: 3, through: 1, by: -1) {
+            for count in stride(from: Self.countdownBeats, through: 1, by: -1) {
                 phase = .countdown(count)
-                try? await Task.sleep(nanoseconds: UInt64(beatDuration * 1_000_000_000))
+                // Absolute deadline per step, same reason as the
+                // metronome's: chained fixed sleeps accumulate their own
+                // overhead and would walk the count-in off the click.
+                let due = anchor + Double(Self.countdownBeats - count + 1) * beatDuration
+                let delay = due - ProcessInfo.processInfo.systemUptime
+                if delay > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
             }
             guard !Task.isCancelled else { return }
-            beginRun(modelContext: modelContext)
+            beginRun(modelContext: modelContext, runStart: runStart)
         }
     }
 
@@ -145,9 +169,18 @@ final class PracticeSession: ObservableObject {
         UIApplication.shared.isIdleTimerDisabled = false
     }
 
-    private func beginRun(modelContext: ModelContext) {
+    /// Beats of "3, 2, 1" count-in before the drill's own timeline starts.
+    private static let countdownBeats = 3
+
+    private func beginRun(modelContext: ModelContext, runStart: TimeInterval) {
         phase = .running
-        startTimestamp = nil
+        // Fixed up front from the shared anchor rather than taken from the
+        // first sample to arrive, so CoreMotion's spin-up latency can't
+        // shift the whole grid off the click. The empty lead-in bar gives
+        // capture four beats of margin to be running by the time the first
+        // target is due.
+        startTimestamp = runStart
+        hasCalibratedThisRun = false
         elapsedTime = 0
         liveSamples = []
         rawLiveSamples = []
@@ -180,11 +213,13 @@ final class PracticeSession: ObservableObject {
         // again) after the drill already ended - wasted CPU at best, and at
         // worst a duplicate `DrillResult` insert per leftover sample.
         guard phase == .running else { return }
-        if startTimestamp == nil {
-            startTimestamp = sample.timestamp
+        if !hasCalibratedThisRun {
+            hasCalibratedThisRun = true
             // Re-detect screen-up/down fresh every attempt from the first
             // sample's gravity reading - see ScratchController.ingest for
             // why this can't just trust a stored value from onboarding.
+            // (Only the calibration keys off the first sample now; the
+            // grid's start time comes from the shared anchor instead.)
             CalibrationStore.orientation = OrientationCalibrator.orientation(gravityZ: sample.gravityZ)
         }
         guard let startTimestamp else { return }

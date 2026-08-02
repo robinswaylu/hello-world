@@ -112,10 +112,16 @@ struct PracticeView: View {
         }
     }
 
+    // Pulses on every click, including the off-beat "and" - the drills put
+    // a stroke on every eighth note, so a light that only blinked on the
+    // beat would show half of them. The beat is the bigger, brighter pulse
+    // so the bar's pulse is still readable at a glance.
     private var metronomeLight: some View {
-        Circle()
-            .fill(metronomeLit ? Color.cyan : Color.cyan.opacity(0.2))
-            .frame(width: 14, height: 14)
+        let isDownbeat = session.isDownbeatTick
+        let size: CGFloat = isDownbeat ? 14 : 9
+        return Circle()
+            .fill(metronomeLit ? (isDownbeat ? Color.cyan : Color.cyan.opacity(0.55)) : Color.cyan.opacity(0.2))
+            .frame(width: size, height: size)
             .animation(.easeOut(duration: 0.08), value: metronomeLit)
     }
 

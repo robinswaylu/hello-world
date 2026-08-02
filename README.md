@@ -260,8 +260,15 @@ This repo currently contains:
    arrow for the first stroke's direction (up = forward, down = back) —
    every later stroke is telegraphed by the one before it, but the first
    one isn't, so this is the only advance warning you get. A small cyan
-   light blinks on every beat, through both the countdown and the run, as
-   a visual companion to the audible click.
+   light pulses with every click, through both the countdown and the run,
+   as a visual companion to the audible one.
+
+   The metronome ticks **eighth notes, not quarters** — an accented click
+   on the beat and a softer, lower one on each off-beat "and". The drills
+   put a stroke on every eighth, so a quarter-note click gave only the
+   forward strokes a sound to hit and left every back stroke to be
+   subdivided by feel, which is where rushing creeps in. Forward strokes
+   land on the accented click, back strokes on the soft one.
 4. Then the drill auto-starts with one empty lead-in bar — a full bar of
    metronome at tempo before the first stroke is due, so the count-in
    doesn't hand straight off into a stroke. (A "4 bar" drill therefore
@@ -344,6 +351,24 @@ later. (Bounding the window is still correct — a stale stroke can't
 match any *future* target. The flaw was that a re-match recomputes past
 targets too.) The end-of-drill score is unaffected either way: it
 re-matches against the complete, unbounded stroke history.
+
+**The click and the grading grid share one clock.** Both the metronome
+and the drill's timeline are derived from a single `systemUptime` anchor
+taken when you tap Start, and every metronome tick is scheduled against
+an absolute deadline (`anchor + n × interval`) rather than by sleeping
+one interval at a time.
+
+This matters because it's what makes "play on the click" actually mean
+"score well". Previously the grid started from whenever CoreMotion's
+first sample happened to arrive after the countdown, while the click
+started when Start was tapped — two independent anchors separated by the
+count-in, the audio engine spinning up, and CoreMotion's own latency,
+none of it measured. That gap became a fixed offset applied to every
+target for the whole run. On top of it, both loops used chained fixed
+sleeps, so each accumulated its own scheduling overhead and they drifted
+apart by tens of milliseconds over a drill — a whole grading band. Now a
+forward target lands on an accented click by construction and stays
+there.
 
 Every stroke in the built-in drills uses a 100ms timing tolerance except
 the first, which gets 250ms. Even with the empty lead-in bar in front of
@@ -447,7 +472,7 @@ ScratchLab/
     ScratchAudioEngine.swift    AVAudioSourceNode wrapping ReadHead
     BluetoothRouteMonitor.swift Detects BT output, drives the warning
     ScratchController.swift     Wires Core Motion -> Phase 1 -> ScratchAudioEngine
-    Metronome.swift             Beat click during practice
+    Metronome.swift             Eighth-note click, accented on the beat
     DrillPreviewPlayer.swift    Rough audio preview of a drill's target pattern
     SampleLibrary.swift         Loads/converts bundled audio -> mono Float32
   Drill/
