@@ -8,6 +8,8 @@ struct Phase0View: View {
     @State private var exportURL: URL?
     @State private var exportError: String?
     @State private var sessionStart = Date()
+    @AppStorage("hapticsEnabled") private var hapticsEnabled = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
 
     var body: some View {
         NavigationStack {
@@ -22,6 +24,7 @@ struct Phase0View: View {
                     )
                     latencyProbeSection
                     exportSection
+                    settingsSection
                     if let error = monitor.lastError {
                         Text(error)
                             .font(.footnote)
@@ -100,6 +103,20 @@ struct Phase0View: View {
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
+        }
+    }
+
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle("Haptic feedback on drill hit/miss", isOn: $hapticsEnabled)
+            Text("Off by default: the phone sits on the platter during capture, and vibration pollutes the gyro reading.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button("Re-run Onboarding / Recalibrate") {
+                hasCompletedOnboarding = false
+            }
+            .buttonStyle(.bordered)
         }
     }
 

@@ -1,10 +1,13 @@
 import SwiftUI
 import SwiftData
 import Charts
+import UIKit
 
 struct PracticeView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var session: PracticeSession
+    @AppStorage("hapticsEnabled") private var hapticsEnabled = false
+    @State private var previousStatuses: [TargetStrokeStatus] = []
 
     init(pattern: ScratchPattern) {
         _session = StateObject(wrappedValue: PracticeSession(pattern: pattern))
@@ -29,6 +32,27 @@ struct PracticeView: View {
         .navigationBarBackButtonHidden(session.phase == .running)
         .onAppear { session.start(modelContext: modelContext) }
         .onDisappear { session.stop() }
+        .onChange(of: session.statuses) { _, newStatuses in
+            handleStatusChange(newStatuses)
+        }
+    }
+
+    private func handleStatusChange(_ newStatuses: [TargetStrokeStatus]) {
+        defer { previousStatuses = newStatuses }
+        guard hapticsEnabled else { return }
+
+        for (index, status) in newStatuses.enumerated() {
+            let previous = index < previousStatuses.count ? previousStatuses[index] : .upcoming
+            guard previous == .upcoming else { continue }
+            switch status {
+            case .hit:
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            case .missed:
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            case .upcoming:
+                break
+            }
+        }
     }
 
     private var runningContent: some View {

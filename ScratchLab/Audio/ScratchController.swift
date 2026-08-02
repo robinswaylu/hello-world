@@ -46,8 +46,9 @@ final class ScratchController: ObservableObject {
     }
 
     private func ingest(_ sample: RotationSample) {
-        platterState = baselineEstimator.ingest(sample.z)
-        let corrected = baselineEstimator.correctedVelocity(sample.z)
+        let z = sample.z * CalibrationStore.signMultiplier
+        platterState = baselineEstimator.ingest(z)
+        let corrected = baselineEstimator.correctedVelocity(z)
         let smoothed = velocitySmoother.process(corrected, timestamp: sample.timestamp)
 
         let reference: Double

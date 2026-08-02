@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UIKit
 
 enum PracticePhase: Equatable {
     case countdown(Int)
@@ -65,6 +66,7 @@ final class PracticeSession: ObservableObject {
         streamTask = nil
         metronome.stop()
         audioEngine.stop()
+        UIApplication.shared.isIdleTimerDisabled = false
     }
 
     private func beginRun(modelContext: ModelContext) {
@@ -74,6 +76,9 @@ final class PracticeSession: ObservableObject {
         liveSamples = []
         try? audioEngine.start()
         metronome.start(bpm: pattern.bpm)
+        // The user's hands are on the platter, not the screen — don't let
+        // it auto-lock mid-drill.
+        UIApplication.shared.isIdleTimerDisabled = true
 
         streamTask = Task {
             for await sample in rotationStream.samples() {
@@ -90,8 +95,9 @@ final class PracticeSession: ObservableObject {
         let elapsed = sample.timestamp - startTimestamp
         elapsedTime = elapsed
 
-        _ = baselineEstimator.ingest(sample.z)
-        let corrected = baselineEstimator.correctedVelocity(sample.z)
+        let z = sample.z * CalibrationStore.signMultiplier
+        _ = baselineEstimator.ingest(z)
+        let corrected = baselineEstimator.correctedVelocity(z)
         let smoothed = velocitySmoother.process(corrected, timestamp: sample.timestamp)
         let reference = BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
         audioEngine.setRate(smoothed / reference)

@@ -31,6 +31,20 @@ This repo currently contains:
   curve) with live hit/miss status → an end screen with a per-stroke score
   breakdown, using Phase 1's `PatternMatcher`. Results persist via
   SwiftData so the drill list shows your best score per drill.
+- **Phase 4**: content & polish. All 6 spec'd built-in drills (baby scratch
+  slow/fast, drag, scribble, release-timing, tempo ladder); a first-launch
+  onboarding flow (placement guide → a real orientation calibration step →
+  audio-route check); haptic feedback on drill hit/miss, off by default
+  because the phone sits on the platter during capture and vibration
+  pollutes the gyro (toggle + explanation under Diagnostics); the screen
+  no longer auto-locks during a drill; dark-mode-first; and a generated
+  placeholder app icon.
+
+  The calibration step is a real fix, not just onboarding UI: without it,
+  a screen-down placement would read every scratch backwards (`gravity.z`
+  determines screen-up vs. screen-down, per `OrientationCalibrator`), and
+  the spec explicitly calls out handling that "via a calibration step, not
+  assumptions."
 
 ## Requirements
 
@@ -76,6 +90,18 @@ This repo currently contains:
 4. The drill auto-stops once its bars are up and shows a score breakdown.
    Backing out and reopening the drill shows your best score in the list.
 
+## First launch (onboarding)
+
+On first launch you'll get a 3-step flow instead of the main tabs:
+
+1. **Placement guide** — how to sit the phone on the record.
+2. **Calibration** — place the phone as you'll actually use it and tap
+   Calibrate; it samples the gravity vector for ~0.3s to detect screen-up
+   vs. screen-down and stores a sign correction. Re-run this any time from
+   Diagnostics → **Re-run Onboarding / Recalibrate** (e.g. if you switch
+   from screen-up to screen-down placement).
+3. **Audio route check** — warns if Bluetooth is connected.
+
 ## Using the Phase 0 harness
 
 1. Switch to the **Diagnostics** tab. Place the phone flat (screen up) on a record on a turntable.
@@ -106,6 +132,8 @@ This repo currently contains:
   placeholder sine sweep generator
 - Phase 3 logic: beat-grid timing math and live hit/upcoming/missed status
   derivation (`DrillTimeline`, `DrillScorer`)
+- Phase 4 logic: screen-up/down orientation detection from the gravity
+  vector (`OrientationCalibrator`)
 
 None of this requires a device — it's all pure Swift over synthetic and
 recorded data. (The AVAudioEngine/Core Motion/AVAudioSession/SwiftData
@@ -135,6 +163,7 @@ ScratchLab/
     SineSweepGenerator.swift Placeholder tone generator
     DrillTimeline.swift      Beat grid -> wall-clock seconds
     DrillScorer.swift        Live hit/upcoming/missed status per target stroke
+    OrientationCalibrator.swift  Screen-up/down detection from gravity.z
   Audio/
     LatencyClickPlayer.swift    Phase 0's click-on-threshold probe
     ScratchAudioEngine.swift    AVAudioSourceNode wrapping ReadHead
@@ -143,11 +172,13 @@ ScratchLab/
     Metronome.swift             Beat click during practice
     DrillPreviewPlayer.swift    Rough audio preview of a drill's target pattern
   Drill/
-    BuiltInDrills.swift      Built-in ScratchPattern content
+    BuiltInDrills.swift      Built-in ScratchPattern content (all 6 drills)
     DrillResult.swift        SwiftData @Model for persisted scores
     PracticeSession.swift    Countdown -> live capture/scoring -> persistence
+    CalibrationStore.swift   Persists the calibration sign correction
   Utilities/CSVExporter.swift     CSV formatting + temp-file export
   Views/                     Phase0View, Phase2View, VelocityChartView, ShareSheet,
-                             DrillListView, DrillDetailView, PracticeView, DrillResultView
+                             DrillListView, DrillDetailView, PracticeView,
+                             DrillResultView, OnboardingView
 ScratchLabTests/             Unit tests for the pure-Swift pieces
 ```

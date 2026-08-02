@@ -22,13 +22,13 @@ final class RotationStream {
                 motionManager.deviceMotionUpdateInterval = updateInterval
                 motionManager.startDeviceMotionUpdates(using: .xArbitraryZVertical, to: .main) { motion, _ in
                     guard let motion else { return }
-                    continuation.yield(RotationSample(timestamp: motion.timestamp, z: motion.rotationRate.z))
+                    continuation.yield(RotationSample(timestamp: motion.timestamp, z: motion.rotationRate.z, gravityZ: motion.gravity.z))
                 }
             } else if motionManager.isGyroAvailable {
                 motionManager.gyroUpdateInterval = updateInterval
                 motionManager.startGyroUpdates(to: .main) { data, _ in
                     guard let data else { return }
-                    continuation.yield(RotationSample(timestamp: data.timestamp, z: data.rotationRate.z))
+                    continuation.yield(RotationSample(timestamp: data.timestamp, z: data.rotationRate.z, gravityZ: 0))
                 }
             } else {
                 continuation.finish()

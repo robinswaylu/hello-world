@@ -46,6 +46,10 @@
 		1A0000000000000000003119 /* PracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000003019 /* PracticeView.swift */; };
 		1A000000000000000000311A /* DrillResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000301A /* DrillResultView.swift */; };
 		1A0000000000000000003120 /* DrillScoringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000003020 /* DrillScoringTests.swift */; };
+		1A0000000000000000004110 /* OrientationCalibrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000004010 /* OrientationCalibrator.swift */; };
+		1A0000000000000000004111 /* CalibrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000004011 /* CalibrationStore.swift */; };
+		1A0000000000000000004112 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000004012 /* OnboardingView.swift */; };
+		1A0000000000000000004120 /* Phase4Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000004020 /* Phase4Tests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +104,10 @@
 		1A0000000000000000003019 /* PracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeView.swift; sourceTree = "<group>"; };
 		1A000000000000000000301A /* DrillResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrillResultView.swift; sourceTree = "<group>"; };
 		1A0000000000000000003020 /* DrillScoringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrillScoringTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000004010 /* OrientationCalibrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationCalibrator.swift; sourceTree = "<group>"; };
+		1A0000000000000000004011 /* CalibrationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationStore.swift; sourceTree = "<group>"; };
+		1A0000000000000000004012 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		1A0000000000000000004020 /* Phase4Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase4Tests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -178,6 +186,7 @@
 				1A0000000000000000002012 /* SineSweepGenerator.swift */,
 				1A0000000000000000003010 /* DrillTimeline.swift */,
 				1A0000000000000000003011 /* DrillScorer.swift */,
+				1A0000000000000000004010 /* OrientationCalibrator.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -222,6 +231,7 @@
 				1A0000000000000000003018 /* DrillDetailView.swift */,
 				1A0000000000000000003019 /* PracticeView.swift */,
 				1A000000000000000000301A /* DrillResultView.swift */,
+				1A0000000000000000004012 /* OnboardingView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -233,6 +243,7 @@
 				1A0000000000000000001020 /* RotationCoreTests.swift */,
 				1A0000000000000000002020 /* ScratchAudioCoreTests.swift */,
 				1A0000000000000000003020 /* DrillScoringTests.swift */,
+				1A0000000000000000004020 /* Phase4Tests.swift */,
 			);
 			path = ScratchLabTests;
 			sourceTree = "<group>";
@@ -243,6 +254,7 @@
 				1A0000000000000000003012 /* BuiltInDrills.swift */,
 				1A0000000000000000003013 /* DrillResult.swift */,
 				1A0000000000000000003014 /* PracticeSession.swift */,
+				1A0000000000000000004011 /* CalibrationStore.swift */,
 			);
 			path = Drill;
 			sourceTree = "<group>";
@@ -372,6 +384,9 @@
 				1A0000000000000000003118 /* DrillDetailView.swift in Sources */,
 				1A0000000000000000003119 /* PracticeView.swift in Sources */,
 				1A000000000000000000311A /* DrillResultView.swift in Sources */,
+				1A0000000000000000004110 /* OrientationCalibrator.swift in Sources */,
+				1A0000000000000000004111 /* CalibrationStore.swift in Sources */,
+				1A0000000000000000004112 /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,6 +398,7 @@
 				1A0000000000000000001120 /* RotationCoreTests.swift in Sources */,
 				1A0000000000000000002120 /* ScratchAudioCoreTests.swift in Sources */,
 				1A0000000000000000003120 /* DrillScoringTests.swift in Sources */,
+				1A0000000000000000004120 /* Phase4Tests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
