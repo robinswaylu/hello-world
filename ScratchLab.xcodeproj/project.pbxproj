@@ -1,0 +1,508 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A0000000000000000000101 /* ScratchLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000B /* ScratchLabApp.swift */; };
+		1A0000000000000000000102 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000C /* Assets.xcassets */; };
+		1A0000000000000000000103 /* GyroSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000D /* GyroSample.swift */; };
+		1A0000000000000000000104 /* MotionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000E /* MotionMonitor.swift */; };
+		1A0000000000000000000105 /* LatencyClickPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000F /* LatencyClickPlayer.swift */; };
+		1A0000000000000000000106 /* CSVExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000010 /* CSVExporter.swift */; };
+		1A0000000000000000000107 /* Phase0View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000011 /* Phase0View.swift */; };
+		1A0000000000000000000108 /* VelocityChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000012 /* VelocityChartView.swift */; };
+		1A0000000000000000000109 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000013 /* ShareSheet.swift */; };
+		1A000000000000000000010A /* ScratchLabTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000014 /* ScratchLabTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1A000000000000000000050A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A0000000000000000000201;
+			remoteInfo = ScratchLab;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1A000000000000000000000B /* ScratchLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchLabApp.swift; sourceTree = "<group>"; };
+		1A000000000000000000000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1A000000000000000000000D /* GyroSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GyroSample.swift; sourceTree = "<group>"; };
+		1A000000000000000000000E /* MotionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionMonitor.swift; sourceTree = "<group>"; };
+		1A000000000000000000000F /* LatencyClickPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyClickPlayer.swift; sourceTree = "<group>"; };
+		1A0000000000000000000010 /* CSVExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExporter.swift; sourceTree = "<group>"; };
+		1A0000000000000000000011 /* Phase0View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase0View.swift; sourceTree = "<group>"; };
+		1A0000000000000000000012 /* VelocityChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VelocityChartView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000013 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		1A0000000000000000000014 /* ScratchLabTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchLabTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000000015 /* ScratchLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScratchLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000000000000000000016 /* ScratchLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScratchLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1A0000000000000000000302 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A0000000000000000000305 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A0000000000000000000002 /* Main Group */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000004 /* ScratchLab */,
+				1A000000000000000000000A /* ScratchLabTests */,
+				1A0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000015 /* ScratchLab.app */,
+				1A0000000000000000000016 /* ScratchLabTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000004 /* ScratchLab */ = {
+			isa = PBXGroup;
+			children = (
+				1A000000000000000000000B /* ScratchLabApp.swift */,
+				1A000000000000000000000C /* Assets.xcassets */,
+				1A0000000000000000000005 /* Models */,
+				1A0000000000000000000006 /* Motion */,
+				1A0000000000000000000007 /* Audio */,
+				1A0000000000000000000008 /* Utilities */,
+				1A0000000000000000000009 /* Views */,
+			);
+			path = ScratchLab;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000005 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1A000000000000000000000D /* GyroSample.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000006 /* Motion */ = {
+			isa = PBXGroup;
+			children = (
+				1A000000000000000000000E /* MotionMonitor.swift */,
+			);
+			path = Motion;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000007 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				1A000000000000000000000F /* LatencyClickPlayer.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000008 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000010 /* CSVExporter.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000009 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000011 /* Phase0View.swift */,
+				1A0000000000000000000012 /* VelocityChartView.swift */,
+				1A0000000000000000000013 /* ShareSheet.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		1A000000000000000000000A /* ScratchLabTests */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000014 /* ScratchLabTests.swift */,
+			);
+			path = ScratchLabTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A0000000000000000000201 /* ScratchLab */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000000000000000000404 /* Build configuration list for PBXNativeTarget "ScratchLab" */;
+			buildPhases = (
+				1A0000000000000000000301 /* Sources */,
+				1A0000000000000000000302 /* Frameworks */,
+				1A0000000000000000000303 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ScratchLab;
+			productName = ScratchLab;
+			productReference = 1A0000000000000000000015 /* ScratchLab.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1A0000000000000000000202 /* ScratchLabTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000000000000000000407 /* Build configuration list for PBXNativeTarget "ScratchLabTests" */;
+			buildPhases = (
+				1A0000000000000000000304 /* Sources */,
+				1A0000000000000000000305 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A000000000000000000050B /* PBXTargetDependency */,
+			);
+			name = ScratchLabTests;
+			productName = ScratchLabTests;
+			productReference = 1A0000000000000000000016 /* ScratchLabTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1A0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					1A0000000000000000000201 = {
+						CreatedOnToolsVersion = 15.2;
+					};
+					1A0000000000000000000202 = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = 1A0000000000000000000201;
+					};
+				};
+			};
+			buildConfigurationList = 1A0000000000000000000401 /* Build configuration list for PBXProject "ScratchLab" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1A0000000000000000000002 /* Main Group */;
+			productRefGroup = 1A0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A0000000000000000000201 /* ScratchLab */,
+				1A0000000000000000000202 /* ScratchLabTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1A0000000000000000000303 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0000000000000000000102 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A0000000000000000000301 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0000000000000000000101 /* ScratchLabApp.swift in Sources */,
+				1A0000000000000000000103 /* GyroSample.swift in Sources */,
+				1A0000000000000000000104 /* MotionMonitor.swift in Sources */,
+				1A0000000000000000000105 /* LatencyClickPlayer.swift in Sources */,
+				1A0000000000000000000106 /* CSVExporter.swift in Sources */,
+				1A0000000000000000000107 /* Phase0View.swift in Sources */,
+				1A0000000000000000000108 /* VelocityChartView.swift in Sources */,
+				1A0000000000000000000109 /* ShareSheet.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A0000000000000000000304 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A000000000000000000010A /* ScratchLabTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1A000000000000000000050B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A0000000000000000000201 /* ScratchLab */;
+			targetProxy = 1A000000000000000000050A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1A0000000000000000000402 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1A0000000000000000000403 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1A0000000000000000000405 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scratchlab.ScratchLab;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		1A0000000000000000000406 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scratchlab.ScratchLab;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		1A0000000000000000000408 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scratchlab.ScratchLabTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScratchLab.app/ScratchLab";
+			};
+			name = Debug;
+		};
+		1A0000000000000000000409 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scratchlab.ScratchLabTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScratchLab.app/ScratchLab";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A0000000000000000000401 /* Build configuration list for PBXProject "ScratchLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000402 /* Debug */,
+				1A0000000000000000000403 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000000000000000000404 /* Build configuration list for PBXNativeTarget "ScratchLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000405 /* Debug */,
+				1A0000000000000000000406 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000000000000000000407 /* Build configuration list for PBXNativeTarget "ScratchLabTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000408 /* Debug */,
+				1A0000000000000000000409 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1A0000000000000000000001 /* Project object */;
+}
