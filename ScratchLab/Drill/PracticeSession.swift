@@ -68,6 +68,7 @@ final class PracticeSession: ObservableObject {
     // judgement detection both need every sample to stay accurate.
     private var completedStrokes: [ScratchStroke] = []
     private var lastComputedStatuses: [TargetStrokeStatus]
+    private var hadPendingStroke = false
 
     // Rolling window for the chart display only - bounded regardless of
     // how long the drill runs, unlike the strokes/statuses above which
@@ -129,6 +130,7 @@ final class PracticeSession: ObservableObject {
         rawLiveSamples = []
         segmenter = GestureSegmenter()
         completedStrokes = []
+        hadPendingStroke = false
         let initialStatuses = pattern.strokes.map { _ in TargetStrokeStatus.upcoming }
         statuses = initialStatuses
         lastComputedStatuses = initialStatuses
@@ -167,11 +169,24 @@ final class PracticeSession: ObservableObject {
         // Scoring: also every sample, but O(1) - segmenter.ingest carries
         // its in-progress-stroke state forward instead of rescanning
         // everything performed so far.
+        var performedDidChange = false
         if let completed = segmenter.ingest(timestamp: elapsed, velocity: smoothed) {
             completedStrokes.append(completed)
+            performedDidChange = true
         }
-        let strokes = segmenter.pendingStroke.map { completedStrokes + [$0] } ?? completedStrokes
-        let newStatuses = DrillScorer.statuses(pattern: pattern, performed: strokes, elapsedTime: elapsed)
+        let pending = segmenter.pendingStroke
+        if (pending != nil) != hadPendingStroke {
+            performedDidChange = true // a stroke just started (or just ended, already caught above)
+        }
+        hadPendingStroke = pending != nil
+        let strokes = pending.map { completedStrokes + [$0] } ?? completedStrokes
+
+        // Which strokes have been performed only changes a couple dozen
+        // times over a whole drill - re-running PatternMatcher's full,
+        // allocating match on every single ~100Hz sample regardless was
+        // the actual scoring-lag bug. Skip straight to the cheap
+        // upcoming/missed time check on samples where nothing changed.
+        let newStatuses = DrillScorer.statuses(previous: lastComputedStatuses, pattern: pattern, performed: strokes, elapsedTime: elapsed, performedDidChange: performedDidChange)
         applyNewJudgements(previous: lastComputedStatuses, current: newStatuses)
         lastComputedStatuses = newStatuses
 

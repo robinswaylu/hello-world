@@ -116,6 +116,20 @@ This repo currently contains:
   render cost stays flat too. This should also make the "grading feels
   laggy/inaccurate" complaint better, not just the audio: the same
   main-thread congestion was delaying the timestamps scoring relies on.
+- **The scoring system was still lagging, separately.** The segmenter fix
+  above helped, but `DrillScorer`/`PatternMatcher.match` was still being
+  called fresh on every single ~100Hz sample regardless of whether
+  anything about the performed strokes had actually changed — a full,
+  allocating re-match of all of a pattern's targets, over a hundred times
+  a second, when in reality which strokes have been performed only
+  changes a couple dozen times over a whole drill (when one starts or
+  completes). `DrillScorer` now has an incremental overload that skips
+  straight to a cheap O(targets) upcoming→missed time check on samples
+  where nothing changed, only running the full match when a stroke
+  actually started or completed. `PatternMatcher.match` itself also lost
+  its per-target `enumerated().filter().min()` allocation in favor of a
+  manual scan, for the (now much rarer) calls that do need the full
+  match.
 
 ## Requirements
 

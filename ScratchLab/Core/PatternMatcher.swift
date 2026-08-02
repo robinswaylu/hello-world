@@ -47,21 +47,31 @@ enum PatternMatcher {
         let beatDuration = 60.0 / pattern.bpm
         var usedPerformedIndices = Set<Int>()
         var scores: [StrokeScore] = []
+        scores.reserveCapacity(pattern.strokes.count)
 
         for (targetIndex, target) in pattern.strokes.enumerated() {
             let targetTime = target.beatPosition * beatDuration
             let toleranceSeconds = target.timingToleranceMs / 1000.0
 
-            let candidate = performed.enumerated()
-                .filter { !usedPerformedIndices.contains($0.offset) }
-                .min { abs($0.element.startTime - targetTime) < abs($1.element.startTime - targetTime) }
+            // Manual nearest-match scan instead of enumerated().filter().min()
+            // - this runs per target, so avoiding an intermediate array
+            // allocation on every call matters when it's called often.
+            var bestIndex: Int?
+            var bestDistance = Double.greatestFiniteMagnitude
+            for (performedIndex, stroke) in performed.enumerated() where !usedPerformedIndices.contains(performedIndex) {
+                let distance = abs(stroke.startTime - targetTime)
+                if distance < bestDistance {
+                    bestDistance = distance
+                    bestIndex = performedIndex
+                }
+            }
 
-            guard let (performedIndex, stroke) = candidate,
-                  abs(stroke.startTime - targetTime) <= toleranceSeconds * 3 else {
+            guard let performedIndex = bestIndex, bestDistance <= toleranceSeconds * 3 else {
                 scores.append(StrokeScore(targetIndex: targetIndex, matched: false, timingErrorMs: nil, directionCorrect: false, displacementOk: false, grade: .missed, score: 0))
                 continue
             }
             usedPerformedIndices.insert(performedIndex)
+            let stroke = performed[performedIndex]
 
             let timingErrorMs = (stroke.startTime - targetTime) * 1000.0
             let timingRatio = abs(timingErrorMs) / target.timingToleranceMs
