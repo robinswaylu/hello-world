@@ -4,6 +4,7 @@ import Charts
 struct DrillResultView: View {
     let pattern: ScratchPattern
     let result: MatchResult
+    let bestStreak: Int
     let onReplay: () -> Void
 
     var body: some View {
@@ -12,6 +13,7 @@ struct DrillResultView: View {
                 Text("Score: \(Int(result.overallScore))")
                     .font(.largeTitle.bold())
 
+                longestStreak
                 gradeSummary
 
                 Button("Replay", action: onReplay)
@@ -45,6 +47,23 @@ struct DrillResultView: View {
             .padding()
         }
         .navigationTitle("Result")
+    }
+
+    /// The best run of consecutive Good-or-better strokes in this attempt.
+    /// Styled like the live badge during practice so it reads as the same
+    /// number you were watching climb.
+    private var longestStreak: some View {
+        HStack(spacing: 8) {
+            Text("Longest streak")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text("\(bestStreak)")
+                .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(bestStreak > 0 ? Color.orange : Color.secondary)
+            Text("of \(result.strokeScores.count)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var gradeSummary: some View {

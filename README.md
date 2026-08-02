@@ -278,10 +278,13 @@ This repo currently contains:
    a judgement (PERFECT!/GREAT/GOOD/POOR/MISSED) the instant it's graded;
    the header carries a live stroke counter (graded / total) and a streak
    counter for consecutive good-enough hits.
-6. The drill auto-stops once its bars are up and shows a score breakdown
-   with a grade per stroke, plus a **Replay** button that restarts the same
-   drill (3-2-1 countdown and all) without backing out to the drill list.
-   Backing out and reopening the drill shows your best score in the list.
+6. The drill auto-stops once its bars are up and shows a score breakdown:
+   the overall score, your **longest streak** for that attempt, a grade
+   per stroke, and a **Replay** button that restarts the same drill (3-2-1
+   countdown and all) without backing out to the drill list. Backing out
+   and reopening the drill shows your best score in the list. Only the
+   overall score is persisted between attempts — the longest streak is
+   per-attempt and resets on replay.
 
 ### How grading works
 
