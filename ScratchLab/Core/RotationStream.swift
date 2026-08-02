@@ -7,6 +7,7 @@ import Foundation
 final class RotationStream {
     private let motionManager: CMMotionManager
     private let updateInterval: TimeInterval
+    private var continuation: AsyncStream<RotationSample>.Continuation?
 
     init(motionManager: CMMotionManager = CMMotionManager(), updateInterval: TimeInterval = 1.0 / 200.0) {
         self.motionManager = motionManager
@@ -15,6 +16,8 @@ final class RotationStream {
 
     func samples() -> AsyncStream<RotationSample> {
         AsyncStream { continuation in
+            self.continuation = continuation
+
             if motionManager.isDeviceMotionAvailable {
                 motionManager.deviceMotionUpdateInterval = updateInterval
                 motionManager.startDeviceMotionUpdates(using: .xArbitraryZVertical, to: .main) { motion, _ in
@@ -36,5 +39,15 @@ final class RotationStream {
                 motionManager.stopGyroUpdates()
             }
         }
+    }
+
+    /// Ends the stream: stops Core Motion updates and lets any active
+    /// `for await` loop over `samples()` exit on its own. Cancelling the
+    /// consuming Task alone does NOT do this — AsyncStream doesn't poll
+    /// for task cancellation, so without this the capture (and whatever
+    /// keeps consuming it) would silently keep running in the background.
+    func stop() {
+        continuation?.finish()
+        continuation = nil
     }
 }

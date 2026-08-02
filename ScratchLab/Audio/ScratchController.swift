@@ -39,6 +39,7 @@ final class ScratchController: ObservableObject {
     }
 
     func stop() {
+        rotationStream.stop()
         streamTask?.cancel()
         streamTask = nil
         audioEngine.stop()

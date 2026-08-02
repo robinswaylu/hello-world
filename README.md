@@ -23,6 +23,14 @@ This repo currently contains:
   samples are a follow-up content task, not something this repo can
   source on its own). This is the new default **Scratch** tab; Phase 0's
   harness is still there under **Diagnostics**.
+- **Phase 3**: the drill player (`ScratchLab/Drill/`) — a **Drills** tab
+  listing built-in `ScratchPattern`s (baby scratch at 80 and 120 BPM),
+  a detail screen with a target-pattern chart and an audio preview, and
+  a practice mode: countdown → live capture/audio/metronome → a
+  Guitar-Hero-style overlay chart (target strokes vs. your live velocity
+  curve) with live hit/miss status → an end screen with a per-stroke score
+  breakdown, using Phase 1's `PatternMatcher`. Results persist via
+  SwiftData so the drill list shows your best score per drill.
 
 ## Requirements
 
@@ -55,6 +63,19 @@ This repo currently contains:
 5. The readout shows the detected platter state (`motorOff`/`rpm33`/`rpm45`/
    `unknown`) and the current playback rate ratio.
 
+## Using the Phase 3 drill player
+
+1. Switch to the **Drills** tab.
+2. Tap a drill (e.g. "Baby Scratch (80 BPM)") to open its detail screen.
+   Tap **Preview** to hear a rough demo of the target pattern.
+3. Tap **Start Practice**. A 3-2-1 countdown runs, then the drill
+   auto-starts: a metronome click keeps time, live audio scratches as you
+   move the platter (same engine as the Scratch tab), and the chart shows
+   target strokes (gray = upcoming, green = hit, red = missed) with your
+   live velocity curve overlaid.
+4. The drill auto-stops once its bars are up and shows a score breakdown.
+   Backing out and reopening the drill shows your best score in the list.
+
 ## Using the Phase 0 harness
 
 1. Switch to the **Diagnostics** tab. Place the phone flat (screen up) on a record on a turntable.
@@ -83,12 +104,14 @@ This repo currently contains:
 - Phase 2 logic: the read-head's forward/reverse/fractional-rate math,
   rate ramping (the anti-zipper mechanism), loop crossfading, and the
   placeholder sine sweep generator
+- Phase 3 logic: beat-grid timing math and live hit/upcoming/missed status
+  derivation (`DrillTimeline`, `DrillScorer`)
 
 None of this requires a device — it's all pure Swift over synthetic and
-recorded data. (The AVAudioEngine/Core Motion/AVAudioSession glue that
-wraps this logic — `RotationStream`, `ScratchAudioEngine`,
-`BluetoothRouteMonitor` — is device-only and isn't unit tested; it's thin
-wrapping around the tested core.)
+recorded data. (The AVAudioEngine/Core Motion/AVAudioSession/SwiftData
+glue that wraps this logic — `RotationStream`, `ScratchAudioEngine`,
+`BluetoothRouteMonitor`, `Metronome`, `PracticeSession` — is device-only
+and isn't unit tested; it's thin wrapping around the tested core.)
 
 ## Project layout
 
@@ -110,12 +133,21 @@ ScratchLab/
     ReadHead.swift           Phase 2's fractional read-head + rate ramping
     LoopCrossfader.swift     Bakes a click-free crossfade into the loop point
     SineSweepGenerator.swift Placeholder tone generator
+    DrillTimeline.swift      Beat grid -> wall-clock seconds
+    DrillScorer.swift        Live hit/upcoming/missed status per target stroke
   Audio/
     LatencyClickPlayer.swift    Phase 0's click-on-threshold probe
     ScratchAudioEngine.swift    AVAudioSourceNode wrapping ReadHead
     BluetoothRouteMonitor.swift Detects BT output, drives the warning
     ScratchController.swift     Wires Core Motion -> Phase 1 -> ScratchAudioEngine
+    Metronome.swift             Beat click during practice
+    DrillPreviewPlayer.swift    Rough audio preview of a drill's target pattern
+  Drill/
+    BuiltInDrills.swift      Built-in ScratchPattern content
+    DrillResult.swift        SwiftData @Model for persisted scores
+    PracticeSession.swift    Countdown -> live capture/scoring -> persistence
   Utilities/CSVExporter.swift     CSV formatting + temp-file export
-  Views/                     Phase0View, Phase2View, VelocityChartView, ShareSheet
+  Views/                     Phase0View, Phase2View, VelocityChartView, ShareSheet,
+                             DrillListView, DrillDetailView, PracticeView, DrillResultView
 ScratchLabTests/             Unit tests for the pure-Swift pieces
 ```
