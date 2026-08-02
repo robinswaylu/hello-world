@@ -7,7 +7,32 @@ struct ScratchStroke {
     let peakVelocity: Double
     let displacement: Double
 
+    /// When during the stroke |velocity| was highest. This, not
+    /// `startTime`, is what timing is graded on: `startTime` is defined by
+    /// crossing the segmenter's start threshold, so it slides around
+    /// depending on how gently the stroke is eased into, while the peak is
+    /// a sharp, well-defined feature of the motion. It's also the point
+    /// the practice chart draws each target dot at, so "peak on the dot"
+    /// means the same thing to the eye as it does to the scorer.
+    let peakTime: TimeInterval
+
     var duration: TimeInterval { endTime - startTime }
+
+    init(
+        startTime: TimeInterval,
+        endTime: TimeInterval,
+        direction: Direction,
+        peakVelocity: Double,
+        displacement: Double,
+        peakTime: TimeInterval? = nil
+    ) {
+        self.startTime = startTime
+        self.endTime = endTime
+        self.direction = direction
+        self.peakVelocity = peakVelocity
+        self.displacement = displacement
+        self.peakTime = peakTime ?? (startTime + endTime) / 2
+    }
 }
 
 /// Splits a velocity stream into discrete strokes with hysteresis + debounce:
@@ -38,6 +63,7 @@ struct GestureSegmenter {
         var start: TimeInterval
         var direction: Direction
         var peak: Double
+        var peakTime: TimeInterval
         var displacement: Double
         var lastAboveStop: TimeInterval
     }
@@ -63,7 +89,7 @@ struct GestureSegmenter {
 
         guard var current = active else {
             if abs(velocity) >= startThreshold {
-                active = ActiveStroke(start: timestamp, direction: sampleDirection, peak: abs(velocity), displacement: 0, lastAboveStop: timestamp)
+                active = ActiveStroke(start: timestamp, direction: sampleDirection, peak: abs(velocity), peakTime: timestamp, displacement: 0, lastAboveStop: timestamp)
             }
             return nil
         }
@@ -75,10 +101,13 @@ struct GestureSegmenter {
             active = nil
             return makeStroke(current)
         } else if reversed {
-            active = ActiveStroke(start: timestamp, direction: sampleDirection, peak: abs(velocity), displacement: 0, lastAboveStop: timestamp)
+            active = ActiveStroke(start: timestamp, direction: sampleDirection, peak: abs(velocity), peakTime: timestamp, displacement: 0, lastAboveStop: timestamp)
             return makeStroke(current)
         } else {
-            current.peak = max(current.peak, abs(velocity))
+            if abs(velocity) > current.peak {
+                current.peak = abs(velocity)
+                current.peakTime = timestamp
+            }
             current.displacement += velocity * dt
             if !belowStop {
                 current.lastAboveStop = timestamp
@@ -114,7 +143,8 @@ struct GestureSegmenter {
             endTime: active.lastAboveStop,
             direction: active.direction,
             peakVelocity: active.peak,
-            displacement: active.displacement
+            displacement: active.displacement,
+            peakTime: active.peakTime
         )
     }
 }

@@ -36,16 +36,18 @@ final class DrillScorerTests: XCTestCase {
         XCTAssertEqual(statuses, [.missed])
     }
 
-    private var referenceVelocity: Double {
-        BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
+    /// The amplitude grading target for this pattern - tempo-derived, not
+    /// the 33⅓ playback reference.
+    private var targetPeak: Double {
+        PerfectRunCurve.targetPeakVelocity(for: singleTargetPattern())
     }
 
     func testHitWhenMatched() {
         let pattern = singleTargetPattern()
-        // Perfect timing and peak velocity right at the reference - both
-        // axes score Perfect, so the overall grade is Perfect too.
-        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5)
-        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
+        // Peak lands exactly on the target beat at exactly on-target
+        // amplitude - both axes score Perfect, so the grade is Perfect.
+        let stroke = ScratchStroke(startTime: 1.9, endTime: 2.1, direction: .forward, peakVelocity: targetPeak, displacement: 0.5, peakTime: 2.0)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.2)
 
         guard case .hit(let grade, let score) = statuses[0] else {
             return XCTFail("expected a hit, got \(statuses[0])")
@@ -54,10 +56,24 @@ final class DrillScorerTests: XCTestCase {
         XCTAssertEqual(score, 100, accuracy: 0.5)
     }
 
+    func testTimingIsMeasuredFromThePeakNotTheStrokeStart() {
+        let pattern = singleTargetPattern()
+        // Starts a long way before the target but peaks right on it. Under
+        // start-time grading this was badly early; the dot marks the
+        // moment to be at full speed, so it's a Perfect.
+        let stroke = ScratchStroke(startTime: 1.7, endTime: 2.3, direction: .forward, peakVelocity: targetPeak, displacement: 0.5, peakTime: 2.0)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.4)
+
+        guard case .hit(let grade, _) = statuses[0] else {
+            return XCTFail("expected a hit, got \(statuses[0])")
+        }
+        XCTAssertEqual(grade, .perfect)
+    }
+
     func testWrongDirectionIsGradedPoorWithLowScore() {
         let pattern = singleTargetPattern()
-        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5)
-        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
+        let stroke = ScratchStroke(startTime: 1.9, endTime: 2.1, direction: .back, peakVelocity: targetPeak, displacement: 0.5, peakTime: 2.0)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.2)
 
         guard case .hit(let grade, let score) = statuses[0] else {
             return XCTFail("expected a hit (matched but wrong direction), got \(statuses[0])")
@@ -70,11 +86,11 @@ final class DrillScorerTests: XCTestCase {
 
     func testPerfectTimingButWeakStrokeIsCappedByAmplitude() {
         let pattern = singleTargetPattern()
-        // Timing is dead-on, but peak velocity is well under the target -
-        // scoring well on timing alone shouldn't be enough for a good
-        // grade if the stroke was never actually powered up to reach it.
-        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .forward, peakVelocity: referenceVelocity * 0.4, displacement: 0.5)
-        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
+        // Timing is dead-on, but the stroke barely moved - a tenth of
+        // target speed. Timing alone shouldn't earn a good grade for a
+        // stroke that was never really performed.
+        let stroke = ScratchStroke(startTime: 1.9, endTime: 2.1, direction: .forward, peakVelocity: targetPeak * 0.1, displacement: 0.5, peakTime: 2.0)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.2)
 
         guard case .hit(let grade, _) = statuses[0] else {
             return XCTFail("expected a hit, got \(statuses[0])")
@@ -82,14 +98,30 @@ final class DrillScorerTests: XCTestCase {
         XCTAssertEqual(grade, .poor)
     }
 
+    func testARealisticScratchIsNoLongerPunishedOnAmplitude() {
+        let pattern = singleTargetPattern()
+        // Regression guard for the calibration bug: amplitude used to be
+        // measured against the 33⅓ RPM *playback* reference (3.49 rad/s),
+        // but real captured strokes peak around 6.5-14 rad/s. Every
+        // genuine scratch therefore read as 2-4x over target and graded
+        // Poor. A stroke at a realistic speed must grade well.
+        let stroke = ScratchStroke(startTime: 1.9, endTime: 2.1, direction: .forward, peakVelocity: 7.0, displacement: 0.5, peakTime: 2.0)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.2)
+
+        guard case .hit(let grade, _) = statuses[0] else {
+            return XCTFail("expected a hit, got \(statuses[0])")
+        }
+        XCTAssertTrue(grade == .perfect || grade == .great, "a 7 rad/s stroke should grade well, got \(grade)")
+    }
+
     func testWindUpBlipDoesNotStealTheTargetFromTheRealStroke() {
         let pattern = singleTargetPattern() // beat 4 @ 120bpm = 2.0s, .forward
-        // A short backward wind-up flick just before the real forward
-        // stroke - closer to the target in time, but the wrong direction.
+        // A short backward wind-up flick peaking right on the target beat -
+        // closer than the real stroke, but the wrong direction.
         // Direction-blind nearest-match would grade the blip and report a
         // direction failure for a stroke the player got right.
-        let windUp = ScratchStroke(startTime: 1.99, endTime: 2.01, direction: .back, peakVelocity: referenceVelocity * 0.3, displacement: 0.05)
-        let real = ScratchStroke(startTime: 2.05, endTime: 2.2, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5)
+        let windUp = ScratchStroke(startTime: 1.95, endTime: 2.0, direction: .back, peakVelocity: targetPeak * 0.3, displacement: 0.05, peakTime: 2.0)
+        let real = ScratchStroke(startTime: 2.0, endTime: 2.2, direction: .forward, peakVelocity: targetPeak, displacement: 0.5, peakTime: 2.05)
 
         let statuses = DrillScorer.statuses(pattern: pattern, performed: [windUp, real], elapsedTime: 2.3)
         guard case .hit(let grade, _) = statuses[0] else {
@@ -102,7 +134,7 @@ final class DrillScorerTests: XCTestCase {
         let pattern = singleTargetPattern()
         // Only a backward stroke in range - the directional preference
         // must not quietly excuse a genuinely wrong-direction attempt.
-        let onlyBackward = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5)
+        let onlyBackward = ScratchStroke(startTime: 1.9, endTime: 2.1, direction: .back, peakVelocity: targetPeak, displacement: 0.5, peakTime: 2.0)
 
         let statuses = DrillScorer.statuses(pattern: pattern, performed: [onlyBackward], elapsedTime: 2.3)
         guard case .hit(let grade, _) = statuses[0] else {
@@ -113,13 +145,12 @@ final class DrillScorerTests: XCTestCase {
 
     func testAccurateAmplitudeButBadTimingIsCappedByTiming() {
         let pattern = singleTargetPattern()
-        // Peak velocity is right on target, but the stroke happened 150ms
-        // late - well outside the 80ms tolerance (so timing alone grades
-        // Poor) while still inside the 3x-tolerance window that counts as
-        // a match at all. Symmetric to the case above: amplitude alone
-        // shouldn't rescue bad timing either.
-        let stroke = ScratchStroke(startTime: 2.15, endTime: 2.2, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5)
-        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.2)
+        // Peak velocity is right on target, but peaks 150ms late - past
+        // the widened Good band (1.6x the 80ms tolerance = 128ms) while
+        // still inside the 3x-tolerance window that counts as a match at
+        // all. Amplitude alone shouldn't rescue bad timing.
+        let stroke = ScratchStroke(startTime: 2.05, endTime: 2.25, direction: .forward, peakVelocity: targetPeak, displacement: 0.5, peakTime: 2.15)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.3)
 
         guard case .hit(let grade, _) = statuses[0] else {
             return XCTFail("expected a hit, got \(statuses[0])")
@@ -144,18 +175,49 @@ final class PerfectRunCurveTests: XCTestCase {
         )
     }
 
-    func testEachStrokePeaksAtOnTargetAmplitudeInItsOwnDirection() {
+    func testEachHumpPeaksExactlyOnItsTargetBeatInItsOwnDirection() {
         let points = PerfectRunCurve.points(for: twoStrokePattern())
         XCTAssertFalse(points.isEmpty)
 
-        // The forward stroke spans beats 0 -> 0.5, so it must rise to
-        // exactly +1 (on-target amplitude, the height its dot is drawn at).
-        let forwardValues: [Double] = points.filter { $0.beat > 0 && $0.beat < 0.5 }.map(\.normalizedVelocity)
-        XCTAssertEqual(forwardValues.max() ?? 0, 1.0, accuracy: 0.001)
+        // Each hump is centred on its target, so the tip of the arc lands
+        // exactly on that target's dot. This is the contract the practice
+        // chart and peak-based timing grading are both built on: if the
+        // peak drifted off the dot, "peak touches dot" would stop meaning
+        // "scores Perfect".
+        let atFirstTarget: [Double] = points.filter { abs($0.beat - 0) < 0.0001 }.map(\.normalizedVelocity)
+        XCTAssertEqual(atFirstTarget.max() ?? 0, 1.0, accuracy: 0.001)
 
-        // The back stroke spans 0.5 -> 1.0 and must dip to -1, not +1.
-        let backValues: [Double] = points.filter { $0.beat > 0.5 && $0.beat < 1.0 }.map(\.normalizedVelocity)
-        XCTAssertEqual(backValues.min() ?? 0, -1.0, accuracy: 0.001)
+        let atSecondTarget: [Double] = points.filter { abs($0.beat - 0.5) < 0.0001 }.map(\.normalizedVelocity)
+        XCTAssertEqual(atSecondTarget.min() ?? 0, -1.0, accuracy: 0.001)
+    }
+
+    func testTargetPeakVelocityIsTempoDerivedAndRealistic() {
+        // Faster tempo means less time per stroke, so a stroke covering
+        // the same platter distance has to move faster.
+        let slow = PerfectRunCurve.targetPeakVelocity(for: pattern(bpm: 80))
+        let fast = PerfectRunCurve.targetPeakVelocity(for: pattern(bpm: 120))
+        XCTAssertGreaterThan(fast, slow)
+
+        // And both must sit in the range real captured scratches actually
+        // reach (~6.5-14 rad/s), not down at the 3.49 rad/s 33⅓ playback
+        // reference that made every genuine stroke grade Poor.
+        XCTAssertGreaterThan(slow, 3.5)
+        XCTAssertLessThan(fast, 14.0)
+    }
+
+    private func pattern(bpm: Double) -> ScratchPattern {
+        ScratchPattern(
+            id: "t",
+            name: "t",
+            bpm: bpm,
+            bars: 1,
+            strokes: [
+                TargetStroke(beatPosition: 0, direction: .forward, relativeDisplacement: nil, timingToleranceMs: 100),
+                TargetStroke(beatPosition: 0.5, direction: .back, relativeDisplacement: nil, timingToleranceMs: 100),
+            ],
+            beatLoopAsset: nil,
+            defaultSampleAsset: "x"
+        )
     }
 
     func testCurveNeverOvershootsOnTargetAmplitude() {
@@ -165,11 +227,11 @@ final class PerfectRunCurveTests: XCTestCase {
         XCTAssertTrue(points.allSatisfy { abs($0.normalizedVelocity) <= 1.0001 })
     }
 
-    func testCurveStartsAtTheFirstTargetNotAtBeatZero() {
+    func testCurveIsAnchoredToTheFirstTargetNotBeatZero() {
         // The built-in drills open with an empty lead-in bar, so the first
-        // target sits a full bar in. The curve has to start there too -
-        // starting at beat 0 would draw the whole ghost a bar early and
-        // out of sync with the dots it's supposed to line up with.
+        // target sits a full bar in. The curve has to follow it - anchoring
+        // at beat 0 would draw the whole ghost a bar early and out of sync
+        // with the dots it's supposed to line up with.
         let pattern = ScratchPattern(
             id: "t",
             name: "t",
@@ -180,7 +242,13 @@ final class PerfectRunCurveTests: XCTestCase {
             defaultSampleAsset: "x"
         )
         let points = PerfectRunCurve.points(for: pattern)
-        XCTAssertEqual(points.first?.beat ?? -1, 4, accuracy: 0.0001)
+
+        // Centred on beat 4, so the hump opens half a stroke before it...
+        XCTAssertEqual(points.first?.beat ?? -1, 3.75, accuracy: 0.0001)
+
+        // ...and, the part that actually matters, peaks right on it.
+        let peak = points.max { abs($0.normalizedVelocity) < abs($1.normalizedVelocity) }
+        XCTAssertEqual(peak?.beat ?? -1, 4, accuracy: 0.0001)
     }
 
     func testEmptyPatternProducesNoPoints() {

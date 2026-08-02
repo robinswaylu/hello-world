@@ -50,18 +50,28 @@ struct MatchResult {
 enum PatternMatcher {
     enum Grading {
         static let perfectRatio = 0.15
-        static let greatRatio = 0.4
-        static let goodRatio = 1.0
-        // How far peak velocity can drift from the reference before it's
-        // as bad as being all the way out at goodRatio on the timing
-        // scale - i.e. amplitudeRatio 1.0 means "50% off target".
+        static let greatRatio = 0.7
+        static let goodRatio = 1.6
+        /// How far peak velocity may drift from the target before it's as
+        /// bad as being all the way out at `goodRatio` on the timing
+        /// scale - i.e. amplitudeRatio 1.0 means "50% off target".
+        ///
+        /// Kept at 0.5 rather than widened along with the bands above:
+        /// an under-powered stroke can only ever reach a ratio of
+        /// 1/amplitudeTolerance (at zero velocity), so loosening this to
+        /// 0.7 would put even a motionless "stroke" inside the Good band
+        /// at 1.43 and make amplitude unable to fail on the low side at
+        /// all. At 0.5, anything under ~20% of target speed is Poor,
+        /// while the wider bands still make Good and Great much easier to
+        /// reach than before.
         static let amplitudeTolerance = 0.5
     }
 
-    private static let referenceVelocity = BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
-
     static func match(pattern: ScratchPattern, performed: [ScratchStroke]) -> MatchResult {
         let beatDuration = 60.0 / pattern.bpm
+        // Tempo-derived, not the 33⅓ playback reference - see
+        // PerfectRunCurve.nominalStrokeDisplacement for why that was wrong.
+        let targetPeakVelocity = PerfectRunCurve.targetPeakVelocity(for: pattern)
         var usedPerformedIndices = Set<Int>()
         var scores: [StrokeScore] = []
         scores.reserveCapacity(pattern.strokes.count)
@@ -99,7 +109,7 @@ enum PatternMatcher {
             var bestDirectedDistance = Double.greatestFiniteMagnitude
 
             for (performedIndex, stroke) in performed.enumerated() where !usedPerformedIndices.contains(performedIndex) {
-                let distance = abs(stroke.startTime - targetTime)
+                let distance = abs(stroke.peakTime - targetTime)
                 guard distance <= matchWindow else { continue }
 
                 if distance < bestDistance {
@@ -119,9 +129,19 @@ enum PatternMatcher {
             usedPerformedIndices.insert(performedIndex)
             let stroke = performed[performedIndex]
 
-            let timingErrorMs = (stroke.startTime - targetTime) * 1000.0
+            // Timing is measured on the stroke's peak, not its start: the
+            // start is wherever velocity happened to cross the segmenter's
+            // threshold, which drifts with how gently the stroke was eased
+            // into, whereas the peak is a sharp feature of the motion and
+            // is the point the chart's target dot marks.
+            let timingErrorMs = (stroke.peakTime - targetTime) * 1000.0
             let timingRatio = abs(timingErrorMs) / target.timingToleranceMs
-            let amplitudeRatio = abs(stroke.peakVelocity / referenceVelocity - 1.0) / Grading.amplitudeTolerance
+            let amplitudeRatio: Double
+            if targetPeakVelocity > 0 {
+                amplitudeRatio = abs(stroke.peakVelocity / targetPeakVelocity - 1.0) / Grading.amplitudeTolerance
+            } else {
+                amplitudeRatio = 0
+            }
             let directionCorrect = stroke.direction == target.direction
 
             // Not currently scored (no built-in drill constrains it), but

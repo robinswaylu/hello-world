@@ -199,15 +199,26 @@ struct PracticeView: View {
     // was added to the scorer.
     private var overlayChart: some View {
         let beatDuration = DrillTimeline.beatDuration(bpm: session.pattern.bpm)
-        let reference = BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
+        // Normalized against the amplitude target grading uses, so y = ±1
+        // is exactly "on-target peak" and the target dots sit there.
+        let reference = max(PerfectRunCurve.targetPeakVelocity(for: session.pattern), 0.001)
         let totalBeats = max(DrillTimeline.totalDuration(pattern: session.pattern) / beatDuration, 1)
         let targets = Array(zip(session.pattern.strokes, session.statuses))
         let liveSamples = session.liveSamples
         let barSeparators = barSeparatorBeats(for: session.pattern)
         let perfectRun = PerfectRunCurve.points(for: session.pattern)
 
+        // Show only the back half of the empty lead-in bar. The full bar
+        // still runs (it's the settle-in time before the first stroke is
+        // due) but rendering all of it spends a fifth of the chart's width
+        // on blank space; halving it hands that width back to the bars
+        // that actually have strokes in them.
+        let firstTargetBeat: Double = session.pattern.strokes.first?.beatPosition ?? 0
+        let displayStartBeat: Double = firstTargetBeat / 2
+        let visibleBeats: Double = max(totalBeats - displayStartBeat, 1)
+
         func xPosition(beat: Double, width: CGFloat) -> CGFloat {
-            CGFloat(beat / totalBeats) * width
+            CGFloat((beat - displayStartBeat) / visibleBeats) * width
         }
         func yPosition(value: Double, height: CGFloat) -> CGFloat {
             let clamped = min(max(value, -2), 2)

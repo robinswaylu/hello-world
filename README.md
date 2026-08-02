@@ -289,22 +289,46 @@ Each target stroke is graded on two independent axes, and your final grade
 is whichever one is *worse* — nailing one doesn't compensate for badly
 missing the other:
 
-- **Timing**: how close your stroke's start is to the target's exact
-  moment, as a fraction of that target's own tolerance window.
+- **Timing**: how close your stroke's *peak* is to the target's exact
+  moment, as a fraction of that target's own tolerance window. Peak, not
+  stroke start: the start is wherever velocity happened to cross the
+  segmenter's threshold, which slides around depending on how gently you
+  ease in, while the peak is a sharp feature of the motion — and it's the
+  point the chart draws the dot at.
 - **Amplitude**: how close your stroke's peak velocity comes to the
-  target's reference velocity (33⅓ RPM-equivalent — the same height the
-  practice chart draws the target dot at), as a fraction of a fixed
-  tolerance.
+  drill's target peak, as a fraction of a fixed tolerance. The target is
+  derived from tempo — the peak of a half-sine covering a nominal
+  platter rotation (`PerfectRunCurve.nominalStrokeDisplacement`, ~0.18 of
+  a revolution) in one stroke slot — so a faster drill asks for faster
+  strokes to cover the same distance in less time.
+
+  This replaced grading amplitude against the 33⅓ RPM reference, which
+  was a category error: 33⅓ is how fast the record turns during
+  *playback* (still the right unit for the audio engine's rate), but a
+  scratch is deliberately much faster. Real captured strokes peak around
+  6.5–14 rad/s against a 3.49 rad/s playback reference, so every genuine
+  stroke read as 2–4× over target and graded Poor on amplitude no matter
+  how well it was played — which also meant the streak counter could
+  never build and every live popup said POOR.
 
 Both are graded on the same rhythm-game-style bands (Perfect/Great/Good/
 Poor, tightest-to-loosest), so a stroke has to land both on time *and* at
-the right intensity for a true Perfect. This is also why the practice
-chart's target dot sits at a fixed height instead of a decoration: your
-velocity line's peak actually reaching that dot, at the right time, is
-now the same thing as scoring Perfect — it isn't just a direction label
-anymore. Direction is still a separate hard gate above both of these:
-wrong direction caps a stroke at Poor no matter how well-timed or
-well-powered it was.
+the right intensity for a true Perfect.
+
+Because timing is peak-based and amplitude is measured against the height
+the dot is drawn at, the two axes are exactly the two coordinates of the
+dot: **your velocity curve's peak passing through a dot is the same thing
+as scoring Perfect on that stroke.** That's also why the reference curve
+centres each hump on its dot rather than starting there.
+
+Direction is a separate hard gate above both: wrong direction caps a
+stroke at Poor no matter how well-timed or well-powered it was.
+
+Live judgements only grade *completed* strokes. A stroke in progress has
+only reached part of its peak, so grading it early read as badly
+under-powered and locked in a Poor — the popup and streak disagreed with
+the result screen, which scores completed strokes. A stroke's peak isn't
+knowable until it's over, so the judgement waits for it.
 
 Every stroke in the built-in drills uses a 100ms timing tolerance except
 the first, which gets 250ms. Even with the empty lead-in bar in front of

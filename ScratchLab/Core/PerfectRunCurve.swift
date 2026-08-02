@@ -30,36 +30,74 @@ enum PerfectRunCurve {
     /// it's just extra path segments to stroke every frame.
     static let samplesPerStroke = 8
 
-    /// Hump width for the final stroke, which has no following stroke to
-    /// bound it. Every built-in drill is on eighth notes, so half a beat
-    /// matches the spacing of every other stroke in the pattern.
-    private static let trailingStrokeBeats = 0.5
+    /// Fallback stroke spacing when a pattern has only one target. Every
+    /// built-in drill is on eighth notes.
+    private static let defaultGapBeats = 0.5
+
+    /// Nominal platter rotation for a single stroke, in radians - roughly
+    /// 0.18 of a revolution, about 63°.
+    ///
+    /// This is what sets the amplitude target, and it's the one number
+    /// here most worth tuning against real playing. It replaced using the
+    /// 33⅓ RPM playback reference as the target, which was a category
+    /// error: 33⅓ is how fast the record turns during *playback* (the
+    /// right unit for the audio engine's rate), but a scratch is
+    /// deliberately much faster than that. Real captured strokes peak
+    /// around 6.5-14 rad/s against a 3.49 rad/s playback reference, so
+    /// every genuine stroke was landing 2-4x "over" target and grading
+    /// Poor on amplitude no matter how well it was played.
+    static let nominalStrokeDisplacement: Double = 1.1
+
+    /// Peak angular velocity (rad/s) a stroke in this drill should reach:
+    /// the peak of a half-sine that covers `nominalStrokeDisplacement`
+    /// over one stroke slot. Derived from the drill's own tempo, so a
+    /// faster drill asks for faster strokes to cover the same distance in
+    /// less time, rather than one flat number across every tempo.
+    static func targetPeakVelocity(for pattern: ScratchPattern) -> Double {
+        let beatDuration = DrillTimeline.beatDuration(bpm: pattern.bpm)
+        let strokeDuration = gapBeats(for: pattern) * beatDuration
+        guard strokeDuration > 0 else { return 0 }
+        return nominalStrokeDisplacement * Double.pi / (2 * strokeDuration)
+    }
+
+    /// Spacing between consecutive targets, in beats.
+    static func gapBeats(for pattern: ScratchPattern) -> Double {
+        let positions: [Double] = pattern.strokes.map(\.beatPosition)
+        guard positions.count > 1 else { return defaultGapBeats }
+
+        var smallest = Double.greatestFiniteMagnitude
+        for index in 1..<positions.count {
+            let gap: Double = positions[index] - positions[index - 1]
+            if gap > 0, gap < smallest {
+                smallest = gap
+            }
+        }
+        return smallest < .greatestFiniteMagnitude ? smallest : defaultGapBeats
+    }
 
     static func points(for pattern: ScratchPattern) -> [Point] {
         let strokes = pattern.strokes
         guard !strokes.isEmpty else { return [] }
 
+        // Each hump is *centred* on its target beat rather than starting
+        // there, so the tip of the arc lands exactly on the target's dot.
+        // That's the whole contract of this curve - the dot marks the
+        // moment to be at full speed - and it's why `PatternMatcher`
+        // grades timing on a stroke's peak rather than its start.
+        let halfSpan: Double = gapBeats(for: pattern) / 2
         var points: [Point] = []
         points.reserveCapacity(strokes.count * (samplesPerStroke + 1))
 
-        for (index, stroke) in strokes.enumerated() {
-            let start: Double = stroke.beatPosition
-            let end: Double
-            if index + 1 < strokes.count {
-                end = strokes[index + 1].beatPosition
-            } else {
-                end = start + trailingStrokeBeats
-            }
-
+        for stroke in strokes {
             let sign: Double = stroke.direction == .forward ? 1 : -1
-            let span: Double = end - start
+            let start: Double = stroke.beatPosition - halfSpan
 
             // Half-sine hump (0 -> peak -> 0) rather than a flat hold: a
             // real stroke accelerates and decelerates, and the peak is
             // what amplitude grading samples.
             for step in 0...samplesPerStroke {
                 let t: Double = Double(step) / Double(samplesPerStroke)
-                let beat: Double = start + span * t
+                let beat: Double = start + halfSpan * 2 * t
                 let value: Double = sign * sin(Double.pi * t)
                 points.append(Point(beat: beat, normalizedVelocity: value))
             }

@@ -85,7 +85,6 @@ final class PracticeSession: ObservableObject {
     private var recentCompletedStrokes: [ScratchStroke] = []
     private let strokeRetentionSeconds: TimeInterval = 3
     private var lastComputedStatuses: [TargetStrokeStatus]
-    private var hadPendingStroke = false
 
     // Rolling window for the chart display only - bounded regardless of
     // how long the drill runs, unlike the strokes/statuses above which
@@ -155,7 +154,6 @@ final class PracticeSession: ObservableObject {
         segmenter = GestureSegmenter()
         allCompletedStrokes = []
         recentCompletedStrokes = []
-        hadPendingStroke = false
         let initialStatuses = pattern.strokes.map { _ in TargetStrokeStatus.upcoming }
         statuses = initialStatuses
         lastComputedStatuses = initialStatuses
@@ -212,19 +210,23 @@ final class PracticeSession: ObservableObject {
             recentCompletedStrokes.removeAll { $0.startTime < strokeCutoff }
             performedDidChange = true
         }
-        let pending = segmenter.pendingStroke
-        if (pending != nil) != hadPendingStroke {
-            performedDidChange = true // a stroke just started (or just ended, already caught above)
-        }
-        hadPendingStroke = pending != nil
-        let liveStrokes = pending.map { recentCompletedStrokes + [$0] } ?? recentCompletedStrokes
+        // Only *completed* strokes are graded live. Including the
+        // in-progress stroke here meant a target got graded the moment a
+        // stroke started overlapping it, using whatever fraction of the
+        // peak velocity had happened so far - which amplitude grading
+        // reads as a badly under-powered stroke and scores Poor. And
+        // because a resolved status is never re-graded, that early wrong
+        // grade stuck: the popup said POOR and the streak reset, while
+        // the result screen (which scores completed strokes) showed the
+        // real, much better grade for the same stroke. A stroke's peak
+        // isn't knowable until it's over, so the judgement now waits.
 
         // Which strokes have been performed only changes a couple dozen
         // times over a whole drill - re-running PatternMatcher's full,
         // allocating match on every single ~100Hz sample regardless was
         // the actual scoring-lag bug. Skip straight to the cheap
         // upcoming/missed time check on samples where nothing changed.
-        let newStatuses = DrillScorer.statuses(previous: lastComputedStatuses, pattern: pattern, performed: liveStrokes, elapsedTime: elapsed, performedDidChange: performedDidChange)
+        let newStatuses = DrillScorer.statuses(previous: lastComputedStatuses, pattern: pattern, performed: recentCompletedStrokes, elapsedTime: elapsed, performedDidChange: performedDidChange)
         applyNewJudgements(previous: lastComputedStatuses, current: newStatuses)
         lastComputedStatuses = newStatuses
 
@@ -257,7 +259,11 @@ final class PracticeSession: ObservableObject {
         if isFinalSample {
             // The final score uses the complete, unbounded history - not
             // the time-bounded recentCompletedStrokes used for live
-            // matching above.
+            // matching above. A stroke still in progress when the drill
+            // ends is included: its peak is only partial, but counting it
+            // under-powered beats dropping it entirely and scoring the
+            // last target as a miss.
+            let pending = segmenter.pendingStroke
             let finalStrokes = pending.map { allCompletedStrokes + [$0] } ?? allCompletedStrokes
             finish(strokes: finalStrokes, modelContext: modelContext)
         }

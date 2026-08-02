@@ -50,8 +50,15 @@ struct DrillDetailView: View {
         let perfectRun = PerfectRunCurve.points(for: pattern)
         let strokes = pattern.strokes
 
+        // Matches the practice chart: only the back half of the empty
+        // lead-in bar is drawn, so the bars with strokes in them get the
+        // width instead.
+        let firstTargetBeat: Double = strokes.first?.beatPosition ?? 0
+        let displayStartBeat: Double = firstTargetBeat / 2
+        let visibleBeats: Double = max(totalBeats - displayStartBeat, 1)
+
         func xPosition(beat: Double, width: CGFloat) -> CGFloat {
-            CGFloat(beat / totalBeats) * width
+            CGFloat((beat - displayStartBeat) / visibleBeats) * width
         }
         func yPosition(value: Double, height: CGFloat) -> CGFloat {
             let clamped = min(max(value, -1.5), 1.5)

@@ -139,8 +139,9 @@ final class GestureSegmenterTests: XCTestCase {
 }
 
 final class PatternMatcherTests: XCTestCase {
-    private var referenceVelocity: Double {
-        BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
+    /// Tempo-derived amplitude target for the test pattern.
+    private var targetPeak: Double {
+        PerfectRunCurve.targetPeakVelocity(for: babyScratchPattern())
     }
 
     private func babyScratchPattern() -> ScratchPattern {
@@ -161,9 +162,10 @@ final class PatternMatcherTests: XCTestCase {
     func testPerfectPerformanceScoresNearMaximum() {
         let pattern = babyScratchPattern()
         let beatDuration = 60.0 / pattern.bpm
+        // Peaks land exactly on each target beat at on-target amplitude.
         let performed = [
-            ScratchStroke(startTime: 0, endTime: 0.1, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5),
-            ScratchStroke(startTime: 0.5 * beatDuration, endTime: 0.5 * beatDuration + 0.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5),
+            ScratchStroke(startTime: -0.05, endTime: 0.05, direction: .forward, peakVelocity: targetPeak, displacement: 0.5, peakTime: 0),
+            ScratchStroke(startTime: 0.5 * beatDuration - 0.05, endTime: 0.5 * beatDuration + 0.05, direction: .back, peakVelocity: targetPeak, displacement: 0.5, peakTime: 0.5 * beatDuration),
         ]
         let result = PatternMatcher.match(pattern: pattern, performed: performed)
         XCTAssertEqual(result.overallScore, 100, accuracy: 0.5)
@@ -173,8 +175,8 @@ final class PatternMatcherTests: XCTestCase {
     func testWrongDirectionIsCappedAtPoorRegardlessOfTiming() {
         let pattern = babyScratchPattern()
         let performed = [
-            ScratchStroke(startTime: 0, endTime: 0.1, direction: .back, peakVelocity: 3, displacement: 0.5),
-            ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: 3, displacement: 0.5),
+            ScratchStroke(startTime: -0.05, endTime: 0.05, direction: .back, peakVelocity: targetPeak, displacement: 0.5, peakTime: 0),
+            ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: targetPeak, displacement: 0.5, peakTime: 30),
         ]
         let result = PatternMatcher.match(pattern: pattern, performed: performed)
         // Perfect timing (0ms error) but wrong direction: capped at .poor
@@ -194,8 +196,8 @@ final class PatternMatcherTests: XCTestCase {
     func testDisplacementOutOfRangeIsRecordedButDoesNotAffectScore() {
         let pattern = babyScratchPattern()
         let performed = [
-            ScratchStroke(startTime: 0, endTime: 0.1, direction: .forward, peakVelocity: referenceVelocity, displacement: 5.0),
-            ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5),
+            ScratchStroke(startTime: -0.05, endTime: 0.05, direction: .forward, peakVelocity: targetPeak, displacement: 5.0, peakTime: 0),
+            ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: targetPeak, displacement: 0.5, peakTime: 30),
         ]
         let result = PatternMatcher.match(pattern: pattern, performed: performed)
         // Displacement isn't part of the score (no built-in drill currently
