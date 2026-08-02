@@ -32,7 +32,7 @@ enum BuiltInDrills {
             bars: bars,
             strokes: strokes,
             beatLoopAsset: nil,
-            defaultSampleAsset: "sine-sweep"
+            defaultSampleAsset: "scratch-sentence"
         )
     }
 
@@ -45,7 +45,7 @@ enum BuiltInDrills {
             strokes.append(TargetStroke(beatPosition: barStart, direction: .forward, relativeDisplacement: 0.5...2.0, timingToleranceMs: 150))
             strokes.append(TargetStroke(beatPosition: barStart + 2, direction: .back, relativeDisplacement: 0.5...2.0, timingToleranceMs: 150))
         }
-        return ScratchPattern(id: "drag", name: "Drag", bpm: bpm, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "sine-sweep")
+        return ScratchPattern(id: "drag", name: "Drag", bpm: bpm, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "scratch-sentence")
     }
 
     /// Baby scratch's faster, tighter cousin: sixteenth notes instead of
@@ -56,7 +56,7 @@ enum BuiltInDrills {
         let strokes = (0..<totalSixteenths).map { i in
             TargetStroke(beatPosition: Double(i) * 0.25, direction: i % 2 == 0 ? .forward : .back, relativeDisplacement: nil, timingToleranceMs: 60)
         }
-        return ScratchPattern(id: "scribble", name: "Scribble", bpm: bpm, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "sine-sweep")
+        return ScratchPattern(id: "scribble", name: "Scribble", bpm: bpm, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "scratch-sentence")
     }
 
     /// Push on the beat, release right before the next one (the "and-a")
@@ -72,7 +72,7 @@ enum BuiltInDrills {
                 strokes.append(TargetStroke(beatPosition: beatPosition + 0.75, direction: .back, relativeDisplacement: nil, timingToleranceMs: 40))
             }
         }
-        return ScratchPattern(id: "release-timing", name: "Release Timing", bpm: bpm, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "sine-sweep")
+        return ScratchPattern(id: "release-timing", name: "Release Timing", bpm: bpm, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "scratch-sentence")
     }
 
     /// The metronome stays flat the whole way through; what changes is how
@@ -98,6 +98,6 @@ enum BuiltInDrills {
         }
 
         let bars = Int((cursor / DrillTimeline.beatsPerBar).rounded(.up))
-        return ScratchPattern(id: "tempo-ladder", name: "Tempo Ladder", bpm: referenceBPM, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "sine-sweep")
+        return ScratchPattern(id: "tempo-ladder", name: "Tempo Ladder", bpm: referenceBPM, bars: bars, strokes: strokes, beatLoopAsset: nil, defaultSampleAsset: "scratch-sentence")
     }
 }

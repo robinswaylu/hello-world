@@ -50,6 +50,8 @@
 		1A0000000000000000004111 /* CalibrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000004011 /* CalibrationStore.swift */; };
 		1A0000000000000000004112 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000004012 /* OnboardingView.swift */; };
 		1A0000000000000000004120 /* Phase4Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000004020 /* Phase4Tests.swift */; };
+		1A0000000000000000005111 /* SampleLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000005011 /* SampleLibrary.swift */; };
+		1A0000000000000000005110 /* scratch-sentence.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000005010 /* scratch-sentence.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +110,8 @@
 		1A0000000000000000004011 /* CalibrationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationStore.swift; sourceTree = "<group>"; };
 		1A0000000000000000004012 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		1A0000000000000000004020 /* Phase4Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase4Tests.swift; sourceTree = "<group>"; };
+		1A0000000000000000005011 /* SampleLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleLibrary.swift; sourceTree = "<group>"; };
+		1A0000000000000000005010 /* scratch-sentence.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "scratch-sentence.wav"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +158,7 @@
 				1A0000000000000000000005 /* Models */,
 				1A0000000000000000001001 /* Core */,
 				1A0000000000000000003001 /* Drill */,
+				1A0000000000000000005001 /* Sounds */,
 				1A0000000000000000000006 /* Motion */,
 				1A0000000000000000000007 /* Audio */,
 				1A0000000000000000000008 /* Utilities */,
@@ -208,6 +213,7 @@
 				1A0000000000000000002015 /* ScratchController.swift */,
 				1A0000000000000000003015 /* Metronome.swift */,
 				1A0000000000000000003016 /* DrillPreviewPlayer.swift */,
+				1A0000000000000000005011 /* SampleLibrary.swift */,
 			);
 			path = Audio;
 			sourceTree = "<group>";
@@ -246,6 +252,14 @@
 				1A0000000000000000004020 /* Phase4Tests.swift */,
 			);
 			path = ScratchLabTests;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000005001 /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000005010 /* scratch-sentence.wav */,
+			);
+			path = Sounds;
 			sourceTree = "<group>";
 		};
 		1A0000000000000000003001 /* Drill */ = {
@@ -340,6 +354,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A0000000000000000000102 /* Assets.xcassets in Resources */,
+				1A0000000000000000005110 /* scratch-sentence.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -387,6 +402,7 @@
 				1A0000000000000000004110 /* OrientationCalibrator.swift in Sources */,
 				1A0000000000000000004111 /* CalibrationStore.swift in Sources */,
 				1A0000000000000000004112 /* OnboardingView.swift in Sources */,
+				1A0000000000000000005111 /* SampleLibrary.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

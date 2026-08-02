@@ -18,11 +18,8 @@ This repo currently contains:
 - **Phase 2**: the scratch audio engine (`ScratchLab/Audio/`) — a custom
   `AVAudioSourceNode` read-head that plays a sample forward/reverse at
   whatever rate Phase 1's signal core reports, with a loop crossfade to
-  avoid clicks and a Bluetooth-route warning. Ships with a generated
-  440→880Hz sine sweep as the placeholder tone (real licensed scratch
-  samples are a follow-up content task, not something this repo can
-  source on its own). This is the new default **Scratch** tab; Phase 0's
-  harness is still there under **Diagnostics**.
+  avoid clicks and a Bluetooth-route warning. This is the new default
+  **Scratch** tab; Phase 0's harness is still there under **Diagnostics**.
 - **Phase 3**: the drill player (`ScratchLab/Drill/`) — a **Drills** tab
   listing built-in `ScratchPattern`s (baby scratch at 80 and 120 BPM),
   a detail screen with a target-pattern chart and an audio preview, and
@@ -45,6 +42,12 @@ This repo currently contains:
   determines screen-up vs. screen-down, per `OrientationCalibrator`), and
   the spec explicitly calls out handling that "via a calibration step, not
   assumptions."
+- **Real sample content**: `ScratchLab/Sounds/scratch-sentence.wav`
+  (licensed for this use) is now the engine's default scratch voice,
+  loaded and converted to mono at the engine's sample rate via
+  `SampleLibrary`/`AVAudioConverter`. The programmatic sine sweep
+  (`SineSweepGenerator`) is kept as an automatic fallback if the bundled
+  sample ever fails to load, so the engine is never silent.
 
 ## Requirements
 
@@ -171,11 +174,13 @@ ScratchLab/
     ScratchController.swift     Wires Core Motion -> Phase 1 -> ScratchAudioEngine
     Metronome.swift             Beat click during practice
     DrillPreviewPlayer.swift    Rough audio preview of a drill's target pattern
+    SampleLibrary.swift         Loads/converts bundled audio -> mono Float32
   Drill/
     BuiltInDrills.swift      Built-in ScratchPattern content (all 6 drills)
     DrillResult.swift        SwiftData @Model for persisted scores
     PracticeSession.swift    Countdown -> live capture/scoring -> persistence
     CalibrationStore.swift   Persists the calibration sign correction
+  Sounds/scratch-sentence.wav     The real scratch sample (licensed)
   Utilities/CSVExporter.swift     CSV formatting + temp-file export
   Views/                     Phase0View, Phase2View, VelocityChartView, ShareSheet,
                              DrillListView, DrillDetailView, PracticeView,

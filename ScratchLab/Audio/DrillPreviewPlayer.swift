@@ -15,8 +15,8 @@ final class DrillPreviewPlayer: ObservableObject {
     init(pattern: ScratchPattern) {
         self.pattern = pattern
         self.audioEngine = ScratchAudioEngine(
-            samples: SineSweepGenerator.generate(startFrequency: 440, endFrequency: 880, duration: 1.0, sampleRate: 48_000),
-            sampleRate: 48_000
+            samples: ScratchSampleProvider.loadDefaultSample(),
+            sampleRate: SampleLibrary.engineSampleRate
         )
     }
 

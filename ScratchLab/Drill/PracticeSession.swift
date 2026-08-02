@@ -39,8 +39,8 @@ final class PracticeSession: ObservableObject {
         self.pattern = pattern
         self.rotationStream = rotationStream
         self.audioEngine = ScratchAudioEngine(
-            samples: SineSweepGenerator.generate(startFrequency: 440, endFrequency: 880, duration: 1.0, sampleRate: 48_000),
-            sampleRate: 48_000
+            samples: ScratchSampleProvider.loadDefaultSample(),
+            sampleRate: SampleLibrary.engineSampleRate
         )
         self.totalDuration = DrillTimeline.totalDuration(pattern: pattern)
         self.statuses = pattern.strokes.map { _ in .upcoming }

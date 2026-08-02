@@ -6,8 +6,8 @@ struct Phase2View: View {
 
     init() {
         let engine = ScratchAudioEngine(
-            samples: SineSweepGenerator.generate(startFrequency: 440, endFrequency: 880, duration: 1.0, sampleRate: 48_000),
-            sampleRate: 48_000
+            samples: ScratchSampleProvider.loadDefaultSample(),
+            sampleRate: SampleLibrary.engineSampleRate
         )
         _controller = StateObject(wrappedValue: ScratchController(audioEngine: engine))
     }
@@ -47,7 +47,7 @@ struct Phase2View: View {
 
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Placeholder tone: 440Hz → 880Hz sine sweep")
+            Text("Sample: Scratch Sentence")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             readoutRow("Platter state", "\(controller.platterState)")
