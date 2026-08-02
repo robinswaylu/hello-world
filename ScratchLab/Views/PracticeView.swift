@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Charts
 import UIKit
 
 struct PracticeView: View {
@@ -115,28 +114,60 @@ struct PracticeView: View {
         .animation(.spring(response: 0.2, dampingFraction: 0.4), value: streakPulse)
     }
 
+    // A Swift Charts `Chart` used to draw this, re-diffed at ~33Hz - an
+    // Instruments trace during a laggy drill showed the framework's
+    // internal generic value-witness machinery (swift_retain/release,
+    // multiPayloadEnum init/copy/destroy, ClosedRange<>.Index copies) was
+    // responsible for the majority of all sampled CPU time, dwarfing
+    // everything in this app's own code combined. That overhead comes from
+    // Charts building/diffing a declarative view per mark per frame - it's
+    // inherent to the framework, not fixable by optimizing our own scoring
+    // or segmentation code (which is why none of those earlier fixes, or
+    // switching Debug/Release, changed the laggy feel at all). A `Canvas`
+    // draws the same picture by stroking/filling paths directly against a
+    // `GraphicsContext` with no per-datapoint view objects at all, so this
+    // is a straight, immediate-mode redraw instead of a view-tree diff.
     private var overlayChart: some View {
         let beatDuration = DrillTimeline.beatDuration(bpm: session.pattern.bpm)
         let reference = BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
+        let totalBeats = max(DrillTimeline.totalDuration(pattern: session.pattern) / beatDuration, 1)
+        let targets = Array(zip(session.pattern.strokes, session.statuses))
+        let liveSamples = session.liveSamples
 
-        return Chart {
-            ForEach(Array(zip(session.pattern.strokes, session.statuses).enumerated()), id: \.offset) { _, pair in
-                let (stroke, status) = pair
-                PointMark(
-                    x: .value("Beat", stroke.beatPosition),
-                    y: .value("Direction", stroke.direction == .forward ? 1.0 : -1.0)
-                )
-                .foregroundStyle(color(for: status))
+        func xPosition(beat: Double, width: CGFloat) -> CGFloat {
+            CGFloat(beat / totalBeats) * width
+        }
+        func yPosition(value: Double, height: CGFloat) -> CGFloat {
+            let clamped = min(max(value, -2), 2)
+            return height * (1 - CGFloat((clamped + 2) / 4))
+        }
+
+        return Canvas { context, size in
+            if liveSamples.count > 1 {
+                var path = Path()
+                for (index, sample) in liveSamples.enumerated() {
+                    let point = CGPoint(
+                        x: xPosition(beat: sample.timestamp / beatDuration, width: size.width),
+                        y: yPosition(value: sample.velocity / reference, height: size.height)
+                    )
+                    if index == 0 {
+                        path.move(to: point)
+                    } else {
+                        path.addLine(to: point)
+                    }
+                }
+                context.stroke(path, with: .color(.gray), lineWidth: 1.5)
             }
-            ForEach(session.liveSamples, id: \.timestamp) { sample in
-                LineMark(
-                    x: .value("Beat", sample.timestamp / beatDuration),
-                    y: .value("Velocity", sample.velocity / reference)
+
+            for (stroke, status) in targets {
+                let center = CGPoint(
+                    x: xPosition(beat: stroke.beatPosition, width: size.width),
+                    y: yPosition(value: stroke.direction == .forward ? 1.0 : -1.0, height: size.height)
                 )
-                .foregroundStyle(.gray)
+                let dot = CGRect(x: center.x - 4, y: center.y - 4, width: 8, height: 8)
+                context.fill(Path(ellipseIn: dot), with: .color(color(for: status)))
             }
         }
-        .chartYScale(domain: -2...2)
         .frame(height: 220)
     }
 

@@ -190,6 +190,30 @@ This repo currently contains:
   accumulated a lot of bogus `DrillResult` rows while reproducing this
   bug, deleting and reinstalling the app (or clearing app data) will
   give it a clean slate.
+- **The actual dominant cost, found by turning off "Hide System
+  Libraries" on a fresh trace: Swift Charts itself.** Every fix above was
+  real, but the drill still felt just as laggy after all of them, and
+  switching between Debug and Release builds changed nothing — a strong
+  sign the bottleneck wasn't CPU-bound application code at all, since
+  that's exactly the kind of cost optimization flags normally do move.
+  With system libraries visible, a trace showed the actual majority of
+  sampled time going to Swift's generic value-witness machinery —
+  `swift_retain`/`swift_release`, `multiPayloadEnumFN<...InitWithCopy>`,
+  `initializeWithCopy`/`destroy for ClosedRange<>.Index`,
+  `_platform_memmove` — several frames explicitly tagged `Charts`. Summing
+  just what was visible on one screenshot already accounted for more than
+  half the entire trace. That's Swift Charts' own internal declarative
+  view representation being built and torn down every time
+  `PracticeView`'s live chart re-rendered (~33Hz), and it's inherent to
+  the framework — no amount of optimizing this app's own scoring or
+  segmentation code could touch it, which is exactly why none of the
+  fixes above (real as they were) changed how the drill actually felt.
+
+  `overlayChart` no longer uses `Chart`/`PointMark`/`LineMark` at all. It's
+  a `Canvas` now, which draws by stroking/filling paths directly against a
+  `GraphicsContext` — the same picture (target markers + the live velocity
+  trace), but as one imperative draw call instead of a per-datapoint
+  declarative view tree that has to be diffed on every frame.
 
 ## Requirements
 
