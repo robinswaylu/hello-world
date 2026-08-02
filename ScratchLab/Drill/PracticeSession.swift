@@ -219,18 +219,27 @@ final class PracticeSession: ObservableObject {
         applyNewJudgements(previous: lastComputedStatuses, current: newStatuses)
         lastComputedStatuses = newStatuses
 
-        rawLiveSamples.append((timestamp: elapsed, velocity: smoothed))
-        let cutoff = elapsed - displayWindowSeconds
-        while let first = rawLiveSamples.first, first.timestamp < cutoff {
-            rawLiveSamples.removeFirst()
-        }
-
         let isFinalSample = elapsed >= totalDuration
 
         // UI-facing: throttled, since rendering is what's actually
-        // expensive here, not the math above.
+        // expensive here, not the math above. `rawLiveSamples` itself is
+        // now only touched on this same throttled cadence too - it used to
+        // be appended/pruned every single 100Hz sample even though it's
+        // only ever displayed at ~33Hz, which meant Swift Charts was
+        // re-rendering up to ~500 line points a frame (a real, sustained
+        // per-frame cost) when only ~167 of them were ever shown, and
+        // `removeFirst()` was shifting a ~500-element array 100 times a
+        // second to boot. Deciding at the throttled rate instead cuts both
+        // the bookkeeping and the on-screen point count by ~3x for free -
+        // the in-between samples were never visible anyway.
         uiSampleCounter += 1
         if uiSampleCounter % uiUpdateStride == 0 || isFinalSample {
+            rawLiveSamples.append((timestamp: elapsed, velocity: smoothed))
+            let cutoff = elapsed - displayWindowSeconds
+            while let first = rawLiveSamples.first, first.timestamp < cutoff {
+                rawLiveSamples.removeFirst()
+            }
+
             elapsedTime = elapsed
             statuses = newStatuses
             liveSamples = rawLiveSamples
