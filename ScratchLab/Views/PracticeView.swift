@@ -127,6 +127,20 @@ struct PracticeView: View {
     // draws the same picture by stroking/filling paths directly against a
     // `GraphicsContext` with no per-datapoint view objects at all, so this
     // is a straight, immediate-mode redraw instead of a view-tree diff.
+    // Targets used to be drawn as a single dot at a fixed height (+1/-1 for
+    // forward/back). That was misleading: the dot's height never meant
+    // anything to the scorer - grading only checks the *timing* of your
+    // stroke's start against the target's tolerance window and whether the
+    // *direction* matched, never how far your velocity trace reached. A
+    // gentle, low-velocity stroke that's well-timed can score Perfect
+    // without the line ever visually reaching the old dot's height, and a
+    // fast one that's mistimed won't score well despite "touching" it - so
+    // "does the line touch the dot" was never actually true whether or not
+    // the stroke scored well. Drawn instead as nested vertical bands
+    // matching the same ratios PatternMatcher grades with (0.15/0.4/1.0 x
+    // tolerance), so "the line crosses through the innermost band" *is*
+    // what scores Perfect, "touching" now means the same thing for the eye
+    // as it does for the scorer.
     private var overlayChart: some View {
         let beatDuration = DrillTimeline.beatDuration(bpm: session.pattern.bpm)
         let reference = BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
@@ -143,6 +157,36 @@ struct PracticeView: View {
         }
 
         return Canvas { context, size in
+            for (stroke, status) in targets {
+                let toleranceBeats = (stroke.timingToleranceMs / 1000.0) / beatDuration
+                let centerX = xPosition(beat: stroke.beatPosition, width: size.width)
+                let goodHalfWidth = xPosition(beat: stroke.beatPosition + toleranceBeats, width: size.width) - centerX
+                let bandColor = color(for: status)
+
+                // Good (full tolerance), Great (0.4x), Perfect (0.15x) -
+                // same ratios as PatternMatcher.Grading, widest to
+                // narrowest, so a stroke landing inside progressively
+                // smaller bands is progressively better-graded both here
+                // and in the actual score.
+                for (ratio, opacity) in [(1.0, 0.12), (0.4, 0.2), (0.15, 0.32)] {
+                    let halfWidth = goodHalfWidth * ratio
+                    let band = CGRect(x: centerX - halfWidth, y: 0, width: halfWidth * 2, height: size.height)
+                    context.fill(Path(band), with: .color(bandColor.opacity(opacity)))
+                }
+
+                var centerLine = Path()
+                centerLine.move(to: CGPoint(x: centerX, y: 0))
+                centerLine.addLine(to: CGPoint(x: centerX, y: size.height))
+                context.stroke(centerLine, with: .color(bandColor), lineWidth: 1.5)
+
+                // Small direction marker at the top of the band - the
+                // vertical bands above already carry the timing/grade
+                // information, this is just forward/back at a glance.
+                let markerY: CGFloat = stroke.direction == .forward ? 10 : size.height - 10
+                let marker = CGRect(x: centerX - 4, y: markerY - 4, width: 8, height: 8)
+                context.fill(Path(ellipseIn: marker), with: .color(bandColor))
+            }
+
             if liveSamples.count > 1 {
                 var path = Path()
                 for (index, sample) in liveSamples.enumerated() {
@@ -156,16 +200,7 @@ struct PracticeView: View {
                         path.addLine(to: point)
                     }
                 }
-                context.stroke(path, with: .color(.gray), lineWidth: 1.5)
-            }
-
-            for (stroke, status) in targets {
-                let center = CGPoint(
-                    x: xPosition(beat: stroke.beatPosition, width: size.width),
-                    y: yPosition(value: stroke.direction == .forward ? 1.0 : -1.0, height: size.height)
-                )
-                let dot = CGRect(x: center.x - 4, y: center.y - 4, width: 8, height: 8)
-                context.fill(Path(ellipseIn: dot), with: .color(color(for: status)))
+                context.stroke(path, with: .color(.white), lineWidth: 1.5)
             }
         }
         .frame(height: 220)
