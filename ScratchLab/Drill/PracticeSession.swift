@@ -164,6 +164,15 @@ final class PracticeSession: ObservableObject {
     }
 
     private func ingest(_ sample: RotationSample, modelContext: ModelContext) {
+        // The stream's AsyncStream can have samples already buffered past the
+        // moment `finish()` first fires - `stop()` calls `continuation.finish()`,
+        // which stops *new* samples from being added but still drains whatever
+        // was already queued. Without this guard, every one of those leftover
+        // buffered samples would re-run the full ingest pipeline (and, since
+        // elapsed only grows, re-trigger `isFinalSample` and call `finish()`
+        // again) after the drill already ended - wasted CPU at best, and at
+        // worst a duplicate `DrillResult` insert per leftover sample.
+        guard phase == .running else { return }
         if startTimestamp == nil {
             startTimestamp = sample.timestamp
             // Re-detect screen-up/down fresh every attempt from the first

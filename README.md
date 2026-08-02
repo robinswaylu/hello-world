@@ -152,6 +152,44 @@ This repo currently contains:
   so dropping aged-out candidates from the live search pool can't change
   any matching outcome, only bound how much work is involved in finding
   it.
+- **Confirmed with a real Instruments Time Profiler trace.** The four fixes
+  above were each real and each helped, but a captured trace during a
+  laggy drill's tail end found one more concrete hotspot, consistent in
+  both the Call Tree and the Heaviest Stack Trace panel:
+  `DrillListView.bestScore(for:)` — 679ms, 6.2% of the profiled window.
+  That's architecturally suspicious on its own: `DrillListView` is the
+  Drills tab's root list, not the screen on-screen during practice.
+
+  Two real bugs combined to cause it. First, `PracticeSession.finish()`
+  had no re-entrancy guard. `RotationStream`'s `AsyncStream` can have
+  samples already buffered past the moment a drill's total duration is
+  first crossed — `stop()` calls `continuation.finish()`, which stops
+  *new* samples from being added but still drains whatever was already
+  queued, and each leftover buffered sample re-ran the full `ingest`
+  pipeline, saw `elapsed >= totalDuration` was still true, and called
+  `finish()` again — inserting another `DrillResult` and triggering
+  another SwiftData save each time. `ingest` now guards on
+  `phase == .running` at the top and returns immediately once a drill
+  has finished, so leftover buffered samples are dropped instead of
+  reprocessed.
+
+  Second, `DrillListView`'s `NavigationStack` is where `PracticeView`
+  actually lives — `DrillListView` pushes `DrillDetailView`, which pushes
+  `PracticeView` — so the list stays mounted (just off-screen) the whole
+  time a drill runs, and its `@Query` still re-fetches and re-renders on
+  every SwiftData save, including the duplicate ones from the bug above.
+  Each render was recomputing `bestScore(for:)` — an
+  O(`results.count`) filter/map/max — once per row, so it scaled with
+  every `DrillResult` ever inserted, not just the 3 drills on screen.
+  Replaced it with a single `Dictionary(grouping:)` computed once per
+  body evaluation instead of once per row.
+
+  With the duplicate-insert bug fixed, this should now fire at most
+  once per real drill completion instead of repeatedly while a drill is
+  still running — but if your device's SwiftData store already
+  accumulated a lot of bogus `DrillResult` rows while reproducing this
+  bug, deleting and reinstalling the app (or clearing app data) will
+  give it a clean slate.
 
 ## Requirements
 
