@@ -30,16 +30,34 @@ enum DrillScorer {
     /// which produce an identical result to the previous sample.
     ///
     /// When nothing about the performed strokes changed since the last
-    /// call, only the cheap upcoming -> missed time check needs to run;
-    /// already-graded targets (`.hit`/`.missed`) can't change grade
-    /// retroactively, so there's nothing for a re-match to find.
+    /// call, only the cheap upcoming -> missed time check needs to run.
+    ///
+    /// Either way, a target that has already resolved keeps the status it
+    /// resolved to. That has to be enforced explicitly on the re-match
+    /// path, because live matching runs against a rolling few-seconds
+    /// window of strokes rather than the whole run: once the stroke that
+    /// satisfied a target ages out of that window, a full re-match no
+    /// longer finds anything for that target, and since its timing window
+    /// closed long ago it would come back `.missed`. A dot graded Perfect
+    /// would quietly turn red a few seconds later, on whatever stroke
+    /// happened to trigger the next re-match.
+    ///
+    /// (Bounding the window is still right - a stale stroke genuinely
+    /// can't match any *future* target. The flaw was that the re-match
+    /// recomputes past targets too, not just upcoming ones.)
     static func statuses(previous: [TargetStrokeStatus], pattern: ScratchPattern, performed: [ScratchStroke], elapsedTime: TimeInterval, performedDidChange: Bool) -> [TargetStrokeStatus] {
-        guard !performedDidChange else {
-            return statuses(pattern: pattern, performed: performed, elapsedTime: elapsedTime)
+        guard performedDidChange else {
+            return previous.indices.map { index in
+                guard previous[index] == .upcoming else { return previous[index] }
+                return missedOrUpcoming(pattern: pattern, index: index, elapsedTime: elapsedTime)
+            }
         }
-        return previous.indices.map { index in
-            guard previous[index] == .upcoming else { return previous[index] }
-            return missedOrUpcoming(pattern: pattern, index: index, elapsedTime: elapsedTime)
+
+        let rematched = statuses(pattern: pattern, performed: performed, elapsedTime: elapsedTime)
+        return rematched.indices.map { index in
+            let previousStatus = index < previous.count ? previous[index] : .upcoming
+            guard previousStatus == .upcoming else { return previousStatus }
+            return rematched[index]
         }
     }
 

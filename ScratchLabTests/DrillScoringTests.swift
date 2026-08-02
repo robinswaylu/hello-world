@@ -297,6 +297,23 @@ final class DrillScorerIncrementalTests: XCTestCase {
         XCTAssertEqual(result, [.missed, .missed])
     }
 
+    func testResolvedStatusSurvivesItsStrokeAgingOutOfTheLiveWindow() {
+        let pattern = twoTargetPattern()
+        let stroke = ScratchStroke(startTime: 1.95, endTime: 2.05, direction: .forward, peakVelocity: 6.9, displacement: 0.5, peakTime: 2.0)
+        let resolved = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.1)
+        guard case .hit = resolved[0] else {
+            return XCTFail("test setup expected target 0 to be a hit")
+        }
+
+        // Live matching runs against a rolling window, so a few seconds
+        // later that stroke is gone from `performed` entirely and a
+        // re-match finds nothing for target 0. Its timing window closed
+        // long ago, so without explicit protection it would come back
+        // `.missed` - the graded dot would silently turn red.
+        let later = DrillScorer.statuses(previous: resolved, pattern: pattern, performed: [], elapsedTime: 6.0, performedDidChange: true)
+        XCTAssertEqual(later[0], resolved[0], "a graded target must keep its grade after its stroke ages out of the live window")
+    }
+
     func testChangedSampleRunsFullMatchAndMatchesNonIncrementalResult() {
         let pattern = twoTargetPattern()
         let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .forward, peakVelocity: 3, displacement: 0.5)

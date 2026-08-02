@@ -330,6 +330,18 @@ under-powered and locked in a Poor — the popup and streak disagreed with
 the result screen, which scores completed strokes. A stroke's peak isn't
 knowable until it's over, so the judgement waits for it.
 
+Once a target resolves, its status is final for the rest of the run —
+a dot never changes colour after it's been graded. This needs enforcing
+explicitly, because live matching runs against a rolling few-second
+window of strokes rather than the whole run: when the stroke that
+satisfied a target ages out of that window, a full re-match finds
+nothing for that target, and since its timing window closed long ago it
+would come back Missed. Graded dots were turning red a few seconds
+later. (Bounding the window is still correct — a stale stroke can't
+match any *future* target. The flaw was that a re-match recomputes past
+targets too.) The end-of-drill score is unaffected either way: it
+re-matches against the complete, unbounded stroke history.
+
 Every stroke in the built-in drills uses a 100ms timing tolerance except
 the first, which gets 250ms. Even with the empty lead-in bar in front of
 it, the first target is still the only one with no preceding stroke to
