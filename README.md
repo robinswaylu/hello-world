@@ -130,6 +130,28 @@ This repo currently contains:
   its per-target `enumerated().filter().min()` allocation in favor of a
   manual scan, for the (now much rarer) calls that do need the full
   match.
+- **Still slower over time even after the above** — "smooth at first,
+  gets slower and slower" persisted, which pointed at something else
+  still growing unboundedly rather than a fixed cost (or a Debug-build
+  artifact). Found it: `completedStrokes` only ever grew
+  for the whole drill, and real gyro noise near the segmenter's start/
+  stop thresholds can register far more strokes than a pattern's target
+  count - unlike the clean synthetic data in tests. Since a full
+  `PatternMatcher` re-match's cost scales with how many performed
+  strokes it searches, an ever-growing (noise-inflated) candidate pool
+  meant that whenever a full re-match *did* fire, it got progressively
+  more expensive the longer the drill ran, and more strokes/noise there
+  were to search through.
+
+  Split into two lists: `allCompletedStrokes` (the complete, unbounded
+  history - needed once, at the very end, for the final score) and
+  `recentCompletedStrokes` (a 3-second rolling window used for the live
+  per-sample matching instead). A performed stroke more than a couple
+  hundred ms stale can never match any *future* target anyway - targets
+  are spaced well under a second apart with a tight tolerance window -
+  so dropping aged-out candidates from the live search pool can't change
+  any matching outcome, only bound how much work is involved in finding
+  it.
 
 ## Requirements
 

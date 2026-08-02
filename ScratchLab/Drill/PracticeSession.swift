@@ -66,7 +66,23 @@ final class PracticeSession: ObservableObject {
 
     // Full-rate internal state (never throttled) - segmentation and
     // judgement detection both need every sample to stay accurate.
-    private var completedStrokes: [ScratchStroke] = []
+    //
+    // Two stroke lists, not one: `allCompletedStrokes` is the complete,
+    // unbounded history, needed once at the end for the final score.
+    // `recentCompletedStrokes` is a time-bounded window used for the live
+    // per-sample matching instead - real gyro noise near the segmenter's
+    // thresholds can register far more strokes than a pattern's target
+    // count, and PatternMatcher's cost scales with how many performed
+    // strokes it searches, so an ever-growing candidate pool is exactly
+    // why full re-matches (whenever one does fire) kept getting slower
+    // over the course of a drill. A stroke more than a couple hundred ms
+    // stale can never match any *future* target anyway (targets are
+    // spaced well under a second apart with a tight tolerance window), so
+    // dropping old, aged-out candidates from the live search pool can't
+    // change any matching outcome - only bound the work involved in it.
+    private var allCompletedStrokes: [ScratchStroke] = []
+    private var recentCompletedStrokes: [ScratchStroke] = []
+    private let strokeRetentionSeconds: TimeInterval = 3
     private var lastComputedStatuses: [TargetStrokeStatus]
     private var hadPendingStroke = false
 
@@ -129,7 +145,8 @@ final class PracticeSession: ObservableObject {
         liveSamples = []
         rawLiveSamples = []
         segmenter = GestureSegmenter()
-        completedStrokes = []
+        allCompletedStrokes = []
+        recentCompletedStrokes = []
         hadPendingStroke = false
         let initialStatuses = pattern.strokes.map { _ in TargetStrokeStatus.upcoming }
         statuses = initialStatuses
@@ -171,7 +188,10 @@ final class PracticeSession: ObservableObject {
         // everything performed so far.
         var performedDidChange = false
         if let completed = segmenter.ingest(timestamp: elapsed, velocity: smoothed) {
-            completedStrokes.append(completed)
+            allCompletedStrokes.append(completed)
+            recentCompletedStrokes.append(completed)
+            let strokeCutoff = elapsed - strokeRetentionSeconds
+            recentCompletedStrokes.removeAll { $0.startTime < strokeCutoff }
             performedDidChange = true
         }
         let pending = segmenter.pendingStroke
@@ -179,14 +199,14 @@ final class PracticeSession: ObservableObject {
             performedDidChange = true // a stroke just started (or just ended, already caught above)
         }
         hadPendingStroke = pending != nil
-        let strokes = pending.map { completedStrokes + [$0] } ?? completedStrokes
+        let liveStrokes = pending.map { recentCompletedStrokes + [$0] } ?? recentCompletedStrokes
 
         // Which strokes have been performed only changes a couple dozen
         // times over a whole drill - re-running PatternMatcher's full,
         // allocating match on every single ~100Hz sample regardless was
         // the actual scoring-lag bug. Skip straight to the cheap
         // upcoming/missed time check on samples where nothing changed.
-        let newStatuses = DrillScorer.statuses(previous: lastComputedStatuses, pattern: pattern, performed: strokes, elapsedTime: elapsed, performedDidChange: performedDidChange)
+        let newStatuses = DrillScorer.statuses(previous: lastComputedStatuses, pattern: pattern, performed: liveStrokes, elapsedTime: elapsed, performedDidChange: performedDidChange)
         applyNewJudgements(previous: lastComputedStatuses, current: newStatuses)
         lastComputedStatuses = newStatuses
 
@@ -208,7 +228,11 @@ final class PracticeSession: ObservableObject {
         }
 
         if isFinalSample {
-            finish(strokes: strokes, modelContext: modelContext)
+            // The final score uses the complete, unbounded history - not
+            // the time-bounded recentCompletedStrokes used for live
+            // matching above.
+            let finalStrokes = pending.map { allCompletedStrokes + [$0] } ?? allCompletedStrokes
+            finish(strokes: finalStrokes, modelContext: modelContext)
         }
     }
 
