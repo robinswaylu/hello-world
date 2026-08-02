@@ -21,18 +21,23 @@ struct Judgement: Equatable {
 /// persisting the final result. Auto-starts after the countdown and
 /// auto-stops once the pattern's duration has elapsed.
 ///
+/// Two things keep this responsive as a drill goes on, which it wasn't
+/// before:
+/// - `GestureSegmenter` is fed incrementally (`ingest`, O(1) per sample)
+///   instead of being handed the whole growing sample buffer to rescan
+///   from scratch every single sample (O(n) per call, O(n^2) over a
+///   session) - that rescan was the main reason things got laggier the
+///   longer a drill ran.
+/// - The displayed sample history (`liveSamples`) is capped to a rolling
+///   window instead of growing for the whole drill, so chart render cost
+///   stays constant instead of increasing over time.
+///
 /// The audio-critical path (rate calculation, `audioEngine.setRate`) and
-/// the scoring path (segmentation, judgement detection) run on every
+/// the scoring path (segmentation, judgement detection) still run on every
 /// single motion sample (~100Hz) - that precision matters for both how
 /// responsive the scratch sounds and how accurately strokes are timed.
-/// But publishing state for SwiftUI to render (the growing chart, per-
-/// stroke animations) is comparatively expensive, and doing that at
-/// 100Hz too competes for the same main thread the audio path needs -
-/// if rendering falls behind, `setRate` calls get delayed right along
-/// with it, and the scratch audibly lags behind your hand. So the
-/// `@Published` UI-facing properties are only updated (and the sample
-/// history decimated) every `uiUpdateStride` samples - fast enough to
-/// look and feel smooth, far cheaper to render.
+/// Only the `@Published` UI-facing properties are throttled, since
+/// rendering competes for the same main thread the audio path needs.
 @MainActor
 final class PracticeSession: ObservableObject {
     @Published private(set) var phase: PracticePhase = .countdown(3)
@@ -51,7 +56,7 @@ final class PracticeSession: ObservableObject {
     private let metronome = Metronome()
     private let baselineEstimator = BaselineEstimator()
     private var velocitySmoother = VelocitySmoother()
-    private let segmenter = GestureSegmenter()
+    private var segmenter = GestureSegmenter()
 
     private var streamTask: Task<Void, Never>?
     private var countdownTask: Task<Void, Never>?
@@ -61,8 +66,15 @@ final class PracticeSession: ObservableObject {
 
     // Full-rate internal state (never throttled) - segmentation and
     // judgement detection both need every sample to stay accurate.
-    private var rawLiveSamples: [(timestamp: TimeInterval, velocity: Double)] = []
+    private var completedStrokes: [ScratchStroke] = []
     private var lastComputedStatuses: [TargetStrokeStatus]
+
+    // Rolling window for the chart display only - bounded regardless of
+    // how long the drill runs, unlike the strokes/statuses above which
+    // need the drill's full history to score correctly.
+    private var rawLiveSamples: [(timestamp: TimeInterval, velocity: Double)] = []
+    private let displayWindowSeconds: TimeInterval = 5
+
     private var uiSampleCounter = 0
     private let uiUpdateStride = 3 // ~33Hz UI refresh at 100Hz capture
 
@@ -115,6 +127,8 @@ final class PracticeSession: ObservableObject {
         elapsedTime = 0
         liveSamples = []
         rawLiveSamples = []
+        segmenter = GestureSegmenter()
+        completedStrokes = []
         let initialStatuses = pattern.strokes.map { _ in TargetStrokeStatus.upcoming }
         statuses = initialStatuses
         lastComputedStatuses = initialStatuses
@@ -150,32 +164,37 @@ final class PracticeSession: ObservableObject {
         let reference = BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
         audioEngine.setRate(smoothed / reference)
 
-        // Scoring: also every sample - stroke timing accuracy depends on it.
-        rawLiveSamples.append((timestamp: elapsed, velocity: smoothed))
-        let strokes = segmenter.segment(rawLiveSamples)
+        // Scoring: also every sample, but O(1) - segmenter.ingest carries
+        // its in-progress-stroke state forward instead of rescanning
+        // everything performed so far.
+        if let completed = segmenter.ingest(timestamp: elapsed, velocity: smoothed) {
+            completedStrokes.append(completed)
+        }
+        let strokes = segmenter.pendingStroke.map { completedStrokes + [$0] } ?? completedStrokes
         let newStatuses = DrillScorer.statuses(pattern: pattern, performed: strokes, elapsedTime: elapsed)
         applyNewJudgements(previous: lastComputedStatuses, current: newStatuses)
         lastComputedStatuses = newStatuses
 
+        rawLiveSamples.append((timestamp: elapsed, velocity: smoothed))
+        let cutoff = elapsed - displayWindowSeconds
+        while let first = rawLiveSamples.first, first.timestamp < cutoff {
+            rawLiveSamples.removeFirst()
+        }
+
         let isFinalSample = elapsed >= totalDuration
 
-        // UI-facing: throttled + decimated, since this is what's actually
-        // expensive to render, not the math above.
+        // UI-facing: throttled, since rendering is what's actually
+        // expensive here, not the math above.
         uiSampleCounter += 1
         if uiSampleCounter % uiUpdateStride == 0 || isFinalSample {
             elapsedTime = elapsed
             statuses = newStatuses
-            liveSamples = decimated(rawLiveSamples)
+            liveSamples = rawLiveSamples
         }
 
         if isFinalSample {
             finish(strokes: strokes, modelContext: modelContext)
         }
-    }
-
-    private func decimated(_ samples: [(timestamp: TimeInterval, velocity: Double)]) -> [(timestamp: TimeInterval, velocity: Double)] {
-        guard samples.count > uiUpdateStride else { return samples }
-        return stride(from: 0, to: samples.count, by: uiUpdateStride).map { samples[$0] }
     }
 
     /// A target only just now stopped being `.upcoming` - that's the moment

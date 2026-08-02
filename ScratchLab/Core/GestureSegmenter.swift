@@ -14,6 +14,15 @@ struct ScratchStroke {
 /// a stroke starts once |velocity| crosses `startThreshold`, and ends once it
 /// drops below `stopThreshold` and stays there for `debounceInterval` (or the
 /// direction reverses outright, which closes the stroke immediately).
+///
+/// `ingest(timestamp:velocity:)` is the live-capture entry point: O(1) per
+/// sample, carrying the in-progress stroke's state across calls. `segment(_:)`
+/// is a one-shot convenience (existing tests, offline analysis) that replays
+/// a whole array through a fresh copy - don't call it in a live per-sample
+/// loop, since re-scanning a growing buffer from scratch on every sample is
+/// O(n) per call and O(n^2) over a whole session (this is exactly what made
+/// practice mode feel laggy, and get progressively laggier as a drill went
+/// on: the buffer it was rescanning kept growing).
 struct GestureSegmenter {
     var startThreshold: Double
     var stopThreshold: Double
@@ -33,45 +42,69 @@ struct GestureSegmenter {
         var lastAboveStop: TimeInterval
     }
 
+    private var active: ActiveStroke?
+    private var lastTimestamp: TimeInterval?
+
+    /// The in-progress stroke, if any, as it would look if it ended right
+    /// now - lets live scoring match against a stroke that hasn't actually
+    /// closed yet, without mutating the segmenter's state.
+    var pendingStroke: ScratchStroke? {
+        active.map(makeStroke)
+    }
+
+    /// Feeds one new sample in O(1). Returns a completed stroke exactly when
+    /// one closes (dropped below the stop threshold past the debounce
+    /// window, or a hard direction reversal) - nil otherwise.
+    @discardableResult
+    mutating func ingest(timestamp: TimeInterval, velocity: Double) -> ScratchStroke? {
+        let dt = lastTimestamp.map { timestamp - $0 } ?? 0
+        lastTimestamp = timestamp
+        let sampleDirection: Direction = velocity >= 0 ? .forward : .back
+
+        guard var current = active else {
+            if abs(velocity) >= startThreshold {
+                active = ActiveStroke(start: timestamp, direction: sampleDirection, peak: abs(velocity), displacement: 0, lastAboveStop: timestamp)
+            }
+            return nil
+        }
+
+        let belowStop = abs(velocity) < stopThreshold
+        let reversed = !belowStop && sampleDirection != current.direction
+
+        if belowStop, timestamp - current.lastAboveStop >= debounceInterval {
+            active = nil
+            return makeStroke(current)
+        } else if reversed {
+            active = ActiveStroke(start: timestamp, direction: sampleDirection, peak: abs(velocity), displacement: 0, lastAboveStop: timestamp)
+            return makeStroke(current)
+        } else {
+            current.peak = max(current.peak, abs(velocity))
+            current.displacement += velocity * dt
+            if !belowStop {
+                current.lastAboveStop = timestamp
+            }
+            active = current
+            return nil
+        }
+    }
+
+    /// One-shot convenience: replays `samples` through a fresh copy of this
+    /// segmenter's configuration, ignoring any state already accumulated on
+    /// `self`. See the type doc for why this isn't for live per-sample use.
     func segment(_ samples: [(timestamp: TimeInterval, velocity: Double)]) -> [ScratchStroke] {
+        var copy = self
+        copy.active = nil
+        copy.lastTimestamp = nil
+
         var strokes: [ScratchStroke] = []
-        var active: ActiveStroke?
-
-        for i in 0..<samples.count {
-            let (t, v) = samples[i]
-            let dt = i == 0 ? 0 : t - samples[i - 1].timestamp
-            let sampleDirection: Direction = v >= 0 ? .forward : .back
-
-            guard var current = active else {
-                if abs(v) >= startThreshold {
-                    active = ActiveStroke(start: t, direction: sampleDirection, peak: abs(v), displacement: 0, lastAboveStop: t)
-                }
-                continue
-            }
-
-            let belowStop = abs(v) < stopThreshold
-            let reversed = !belowStop && sampleDirection != current.direction
-
-            if belowStop, t - current.lastAboveStop >= debounceInterval {
-                strokes.append(makeStroke(current))
-                active = nil
-            } else if reversed {
-                strokes.append(makeStroke(current))
-                active = ActiveStroke(start: t, direction: sampleDirection, peak: abs(v), displacement: 0, lastAboveStop: t)
-            } else {
-                current.peak = max(current.peak, abs(v))
-                current.displacement += v * dt
-                if !belowStop {
-                    current.lastAboveStop = t
-                }
-                active = current
+        for sample in samples {
+            if let stroke = copy.ingest(timestamp: sample.timestamp, velocity: sample.velocity) {
+                strokes.append(stroke)
             }
         }
-
-        if let current = active {
-            strokes.append(makeStroke(current))
+        if let pending = copy.pendingStroke {
+            strokes.append(pending)
         }
-
         return strokes
     }
 

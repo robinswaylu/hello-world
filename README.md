@@ -100,6 +100,22 @@ This repo currently contains:
     `@Published` UI-facing state is now throttled and decimated to
     ~33Hz, cutting how much rendering work competes with the real-time
     audio path.
+- **The real lag fix.** Throttling helped but didn't fix it — lag still
+  built up over a drill and got worse the faster you scratched, which is
+  the signature of a cost that *grows*, not a fixed one. The actual bug:
+  `GestureSegmenter.segment()` rescanned the *entire* sample buffer from
+  scratch on every single 100Hz sample — O(n) per call, O(n²) over a
+  whole drill, so it got measurably slower the longer a drill ran (and
+  the more strokes there were to rescan past). `GestureSegmenter` is now
+  genuinely incremental: `ingest(timestamp:velocity:)` carries the
+  in-progress stroke's state across calls in O(1), so per-sample cost is
+  now constant regardless of how far into a drill you are (`segment(_:)`
+  is kept as a one-shot convenience for tests/offline analysis, not for
+  live capture). The displayed chart history is also now a rolling
+  5-second window instead of the whole drill's growing history, so
+  render cost stays flat too. This should also make the "grading feels
+  laggy/inaccurate" complaint better, not just the audio: the same
+  main-thread congestion was delaying the timestamps scoring relies on.
 
 ## Requirements
 
