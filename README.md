@@ -3,9 +3,18 @@
 An iOS app that turns an iPhone into a self-contained scratch-DJ training
 instrument. See the full product spec for the complete phase plan.
 
-This repo currently contains **Phase 0**: the validation harness used to
-confirm the physical assumptions (gyro headroom, achievable sample rate,
-audio latency) before the rest of the app is built.
+This repo currently contains:
+
+- **Phase 0**: the validation harness used to confirm the physical
+  assumptions (gyro headroom, achievable sample rate, audio latency) before
+  the rest of the app is built. On-device testing confirmed a clean ~100Hz
+  sample rate, a near-zero motor-off baseline, and no gyro clipping even
+  under aggressive scratch strokes (peak observed: ~824°/s, well under the
+  gyro's ±2000°/s range).
+- **Phase 1**: the pure-Swift rotation signal core (`ScratchLab/Core/`) —
+  platter-state detection, velocity smoothing, stroke segmentation, and
+  pattern scoring — unit-tested including against a real captured scratch
+  burst from Phase 0 testing.
 
 ## Requirements
 
@@ -43,17 +52,33 @@ audio latency) before the rest of the app is built.
 
 ## Running unit tests
 
-`Cmd+U` runs `ScratchLabTests`, which covers the pure-Swift logic
-(CSV formatting, unit conversion, clipping threshold math) that doesn't
-require a device.
+`Cmd+U` runs `ScratchLabTests`, which covers:
+
+- Phase 0 logic: CSV formatting, unit conversion, clipping threshold math
+- Phase 1 logic: platter-state locking, velocity smoothing, stroke
+  segmentation (including a real captured scratch burst), and pattern
+  scoring
+
+None of this requires a device — it's all pure Swift over synthetic and
+recorded data.
 
 ## Project layout
 
 ```
 ScratchLab/
   ScratchLabApp.swift        App entry point
-  Models/GyroSample.swift    One motion sample + unit conversions
-  Motion/MotionMonitor.swift Core Motion capture + session stats
+  Models/
+    GyroSample.swift         One motion sample + unit conversions
+    Direction.swift          forward/back
+    ScratchPattern.swift     ScratchPattern + TargetStroke (drill data model)
+  Motion/MotionMonitor.swift Phase 0's Core Motion capture + session stats
+  Core/                      Phase 1 rotation signal core
+    RotationSample.swift     Z-only timestamped sample
+    RotationStream.swift     Core Motion -> AsyncStream<RotationSample>
+    BaselineEstimator.swift  33/45/motor-off detection + bias re-zeroing
+    VelocitySmoother.swift   Low-pass + slew limiting for the audio engine
+    GestureSegmenter.swift   Splits a velocity stream into ScratchStrokes
+    PatternMatcher.swift     Scores performed strokes against a ScratchPattern
   Audio/LatencyClickPlayer.swift  AVAudioEngine click-on-threshold probe
   Utilities/CSVExporter.swift     CSV formatting + temp-file export
   Views/                     Phase0View, VelocityChartView, ShareSheet

@@ -17,6 +17,15 @@
 		1A0000000000000000000108 /* VelocityChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000012 /* VelocityChartView.swift */; };
 		1A0000000000000000000109 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000013 /* ShareSheet.swift */; };
 		1A000000000000000000010A /* ScratchLabTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000014 /* ScratchLabTests.swift */; };
+		1A0000000000000000001110 /* Direction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001010 /* Direction.swift */; };
+		1A0000000000000000001111 /* ScratchPattern.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001011 /* ScratchPattern.swift */; };
+		1A0000000000000000001112 /* RotationSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001012 /* RotationSample.swift */; };
+		1A0000000000000000001113 /* RotationStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001013 /* RotationStream.swift */; };
+		1A0000000000000000001114 /* BaselineEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001014 /* BaselineEstimator.swift */; };
+		1A0000000000000000001115 /* VelocitySmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001015 /* VelocitySmoother.swift */; };
+		1A0000000000000000001116 /* GestureSegmenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001016 /* GestureSegmenter.swift */; };
+		1A0000000000000000001117 /* PatternMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001017 /* PatternMatcher.swift */; };
+		1A0000000000000000001120 /* RotationCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001020 /* RotationCoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +51,15 @@
 		1A0000000000000000000014 /* ScratchLabTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchLabTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000000015 /* ScratchLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScratchLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000016 /* ScratchLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScratchLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000000000000000001010 /* Direction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Direction.swift; sourceTree = "<group>"; };
+		1A0000000000000000001011 /* ScratchPattern.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchPattern.swift; sourceTree = "<group>"; };
+		1A0000000000000000001012 /* RotationSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationSample.swift; sourceTree = "<group>"; };
+		1A0000000000000000001013 /* RotationStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationStream.swift; sourceTree = "<group>"; };
+		1A0000000000000000001014 /* BaselineEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineEstimator.swift; sourceTree = "<group>"; };
+		1A0000000000000000001015 /* VelocitySmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VelocitySmoother.swift; sourceTree = "<group>"; };
+		1A0000000000000000001016 /* GestureSegmenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureSegmenter.swift; sourceTree = "<group>"; };
+		1A0000000000000000001017 /* PatternMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternMatcher.swift; sourceTree = "<group>"; };
+		1A0000000000000000001020 /* RotationCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationCoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,6 +104,7 @@
 				1A000000000000000000000B /* ScratchLabApp.swift */,
 				1A000000000000000000000C /* Assets.xcassets */,
 				1A0000000000000000000005 /* Models */,
+				1A0000000000000000001001 /* Core */,
 				1A0000000000000000000006 /* Motion */,
 				1A0000000000000000000007 /* Audio */,
 				1A0000000000000000000008 /* Utilities */,
@@ -98,8 +117,23 @@
 			isa = PBXGroup;
 			children = (
 				1A000000000000000000000D /* GyroSample.swift */,
+				1A0000000000000000001010 /* Direction.swift */,
+				1A0000000000000000001011 /* ScratchPattern.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000001001 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000001012 /* RotationSample.swift */,
+				1A0000000000000000001013 /* RotationStream.swift */,
+				1A0000000000000000001014 /* BaselineEstimator.swift */,
+				1A0000000000000000001015 /* VelocitySmoother.swift */,
+				1A0000000000000000001016 /* GestureSegmenter.swift */,
+				1A0000000000000000001017 /* PatternMatcher.swift */,
+			);
+			path = Core;
 			sourceTree = "<group>";
 		};
 		1A0000000000000000000006 /* Motion */ = {
@@ -140,6 +174,7 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000000014 /* ScratchLabTests.swift */,
+				1A0000000000000000001020 /* RotationCoreTests.swift */,
 			);
 			path = ScratchLabTests;
 			sourceTree = "<group>";
@@ -243,6 +278,14 @@
 				1A0000000000000000000107 /* Phase0View.swift in Sources */,
 				1A0000000000000000000108 /* VelocityChartView.swift in Sources */,
 				1A0000000000000000000109 /* ShareSheet.swift in Sources */,
+				1A0000000000000000001110 /* Direction.swift in Sources */,
+				1A0000000000000000001111 /* ScratchPattern.swift in Sources */,
+				1A0000000000000000001112 /* RotationSample.swift in Sources */,
+				1A0000000000000000001113 /* RotationStream.swift in Sources */,
+				1A0000000000000000001114 /* BaselineEstimator.swift in Sources */,
+				1A0000000000000000001115 /* VelocitySmoother.swift in Sources */,
+				1A0000000000000000001116 /* GestureSegmenter.swift in Sources */,
+				1A0000000000000000001117 /* PatternMatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -251,6 +294,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A000000000000000000010A /* ScratchLabTests.swift in Sources */,
+				1A0000000000000000001120 /* RotationCoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
