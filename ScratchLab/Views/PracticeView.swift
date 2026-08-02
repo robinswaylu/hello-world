@@ -181,6 +181,8 @@ struct PracticeView: View {
         let totalBeats = max(DrillTimeline.totalDuration(pattern: session.pattern) / beatDuration, 1)
         let targets = Array(zip(session.pattern.strokes, session.statuses))
         let liveSamples = session.liveSamples
+        let barLineOffset = barLineOffsetBeats(for: session.pattern)
+        let barCount = max(session.pattern.bars, 1)
 
         func xPosition(beat: Double, width: CGFloat) -> CGFloat {
             CGFloat(beat / totalBeats) * width
@@ -191,11 +193,15 @@ struct PracticeView: View {
         }
 
         return Canvas { context, size in
-            // Bar separators, so the 32 alternating strokes read as four
-            // bars of eight rather than one undifferentiated row of dots.
+            // Bar separators, so the strokes read as bars of eight rather
+            // than one undifferentiated row of dots. Nudged back half a
+            // stroke from the exact bar boundary - drawn right on it, the
+            // line lands on top of the dot that starts the bar instead of
+            // separating it from the previous one.
             var barLines = Path()
-            for bar in 1..<session.pattern.bars {
-                let x = xPosition(beat: Double(bar) * DrillTimeline.beatsPerBar, width: size.width)
+            for bar in 1..<barCount {
+                let boundaryBeat: Double = Double(bar) * DrillTimeline.beatsPerBar - barLineOffset
+                let x = xPosition(beat: boundaryBeat, width: size.width)
                 barLines.move(to: CGPoint(x: x, y: 0))
                 barLines.addLine(to: CGPoint(x: x, y: size.height))
             }
@@ -227,6 +233,27 @@ struct PracticeView: View {
             }
         }
         .frame(height: 220)
+    }
+
+    /// Half the smallest gap between consecutive targets. Bar boundaries
+    /// land exactly on a target (the strokes are on an even subdivision of
+    /// the bar), so a line drawn at the boundary collides with that dot -
+    /// backing it off by half a stroke puts it in the empty space between
+    /// two dots instead. Derived from the pattern rather than hardcoded so
+    /// it still lands correctly for a drill on a different subdivision.
+    private func barLineOffsetBeats(for pattern: ScratchPattern) -> Double {
+        let positions: [Double] = pattern.strokes.map(\.beatPosition)
+        guard positions.count > 1 else { return 0.25 }
+
+        var smallestGap = Double.greatestFiniteMagnitude
+        for index in 1..<positions.count {
+            let gap = positions[index] - positions[index - 1]
+            if gap > 0, gap < smallestGap {
+                smallestGap = gap
+            }
+        }
+        guard smallestGap < .greatestFiniteMagnitude else { return 0.25 }
+        return smallestGap / 2
     }
 
     private func color(for status: TargetStrokeStatus) -> Color {

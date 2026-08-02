@@ -260,15 +260,20 @@ This repo currently contains:
    one isn't, so this is the only advance warning you get. A small cyan
    light blinks on every beat, through both the countdown and the run, as
    a visual companion to the audible click.
-4. Then the drill auto-starts: live audio scratches as you move the
-   platter (same engine as the Scratch tab), and the chart shows target
-   strokes colored by grade (gray = upcoming, yellow = perfect, green =
-   great, cyan = good, orange = poor, red = missed) with your live
-   velocity curve overlaid and faint vertical lines marking each bar
-   boundary. Each stroke pops a judgement (PERFECT!/GREAT/GOOD/POOR/
-   MISSED) the instant it's graded, and a streak counter tracks
-   consecutive good-enough hits.
-5. The drill auto-stops once its bars are up and shows a score breakdown
+4. Then the drill auto-starts with one empty lead-in bar — a full bar of
+   metronome at tempo before the first stroke is due, so the count-in
+   doesn't hand straight off into a stroke. (A "4 bar" drill therefore
+   runs 5 bars end to end; the empty bar is the gap before the first dot
+   on the chart.)
+5. Live audio scratches as you move the platter (same engine as the
+   Scratch tab), and the chart shows target strokes colored by grade
+   (gray = upcoming, yellow = perfect, green = great, cyan = good, orange
+   = poor, red = missed) with your live velocity curve overlaid and faint
+   vertical lines marking each bar boundary — offset half a stroke so
+   they sit in the gap between dots rather than on top of one. Each
+   stroke pops a judgement (PERFECT!/GREAT/GOOD/POOR/MISSED) the instant
+   it's graded, and a streak counter tracks consecutive good-enough hits.
+6. The drill auto-stops once its bars are up and shows a score breakdown
    with a grade per stroke, plus a **Replay** button that restarts the same
    drill (3-2-1 countdown and all) without backing out to the drill list.
    Backing out and reopening the drill shows your best score in the list.
@@ -297,10 +302,9 @@ wrong direction caps a stroke at Poor no matter how well-timed or
 well-powered it was.
 
 Every stroke in the built-in drills uses a 100ms timing tolerance except
-the first, which gets 250ms. The first target lands the instant the
-countdown hands off to the drill, with none of the lead-in every later
-stroke gets from the one before it, so the extra buffer covers that
-reaction-time gap rather than punishing it.
+the first, which gets 250ms. Even with the empty lead-in bar in front of
+it, the first target is still the only one with no preceding stroke to
+establish the rhythm, so it keeps the wider window.
 
 ## First launch (onboarding)
 
