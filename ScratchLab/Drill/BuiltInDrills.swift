@@ -22,12 +22,23 @@ enum BuiltInDrills {
     private static func makeBabyScratch(bpm: Double, bars: Int) -> ScratchPattern {
         let eighthsPerBar = 8
         let totalEighths = bars * eighthsPerBar
-        let strokes = (0..<totalEighths).map { i -> TargetStroke in
-            TargetStroke(
-                beatPosition: Double(i) * 0.5,
-                direction: i % 2 == 0 ? .forward : .back,
-                relativeDisplacement: nil,
-                timingToleranceMs: i == 0 ? firstStrokeToleranceMs : strokeToleranceMs
+        // Each sub-expression is pulled out and explicitly typed rather
+        // than nested into the initializer call. Inline, the type checker
+        // has to solve two ternaries, an implicit-member lookup
+        // (.forward/.back), a `nil` that has to resolve to
+        // ClosedRange<Double>?, and Double(i) * 0.5 all simultaneously,
+        // which is enough to blow past its time limit ("unable to
+        // type-check this expression in reasonable time").
+        let strokes: [TargetStroke] = (0..<totalEighths).map { i in
+            let beatPosition: Double = Double(i) * 0.5
+            let direction: Direction = (i % 2 == 0) ? .forward : .back
+            let tolerance: Double = (i == 0) ? firstStrokeToleranceMs : strokeToleranceMs
+            let displacement: ClosedRange<Double>? = nil
+            return TargetStroke(
+                beatPosition: beatPosition,
+                direction: direction,
+                relativeDisplacement: displacement,
+                timingToleranceMs: tolerance
             )
         }
         return ScratchPattern(
