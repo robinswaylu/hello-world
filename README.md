@@ -288,12 +288,45 @@ This repo currently contains:
    the header carries a live stroke counter (graded / total) and a streak
    counter for consecutive good-enough hits.
 6. The drill auto-stops once its bars are up and shows a score breakdown:
-   the overall score, your **longest streak** for that attempt, a grade
-   per stroke, and a **Replay** button that restarts the same drill (3-2-1
+   the overall score, a one-line **timing diagnosis** (see below), your
+   **longest streak** for that attempt, a grade per stroke, and a
+   **Replay** button that restarts the same drill (3-2-1
    countdown and all) without backing out to the drill list. Backing out
    and reopening the drill shows your best score in the list. Only the
    overall score is persisted between attempts — the longest streak is
    per-attempt and resets on replay.
+
+### Timing diagnosis
+
+A column of per-stroke millisecond errors can't distinguish the two
+problems that matter most, and they need opposite fixes: playing
+*steadily at the wrong tempo* looks, stroke by stroke, a lot like playing
+*erratically at the right one*. `TimingDiagnosis` separates them into
+three independent axes and reports the worst as one sentence:
+
+| Axis | Measured by | Reads as |
+|---|---|---|
+| Tempo | median gap between your strokes vs the target gap | "playing at ~109 BPM against a 90 BPM drill" |
+| Consistency | median absolute deviation of those gaps | "spacing varies by ±40ms" |
+| Alignment | median timing error across matched targets | "every stroke sits ~60ms after the beat" |
+
+It measures your own stroke intervals rather than the matched per-target
+errors, because those errors *wrap*: once you drift far enough the
+matcher re-aligns onto a later stroke and the error jumps by a
+discontinuity whose size depends on your own stroke period — the very
+quantity being estimated. Consecutive differences of raw peak times have
+no such artefact. Strokes peaking under 25% of the drill's target
+velocity are excluded first, so wind-up flicks don't halve every measured
+interval.
+
+Tempo is reported ahead of alignment because a steady run at the wrong
+speed also accumulates a large alignment error, and reporting that
+instead would send you chasing the wrong fix. A run with fewer than 8
+clean strokes returns `.notEnoughData` rather than inventing a diagnosis.
+
+The alignment axis doubles as an empirical latency check: a consistent
+positive offset across runs that are otherwise clean on tempo and
+consistency is uncompensated output latency, measured from real playing.
 
 ### How grading works
 
@@ -354,11 +387,29 @@ match any *future* target. The flaw was that a re-match recomputes past
 targets too.) The end-of-drill score is unaffected either way: it
 re-matches against the complete, unbounded stroke history.
 
-**The click and the grading grid share one clock.** Both the metronome
-and the drill's timeline are derived from a single `systemUptime` anchor
-taken when you tap Start, and every metronome tick is scheduled against
-an absolute deadline (`anchor + n × interval`) rather than by sleeping
-one interval at a time.
+**The click and the grading grid share one clock, offset by output
+latency.** Both the metronome and the drill's timeline derive from a
+single `systemUptime` anchor taken when you tap Start, and every
+metronome tick is scheduled against an absolute deadline (`anchor + n ×
+interval`) rather than by sleeping one interval at a time.
+
+The grid then sits on the *heard* timeline, not the scheduled one. A
+click scheduled at time T reaches your ears at T + output latency, and
+you move in response to what you hear — but gyro timestamps carry no
+such delay, so without the offset a player following the click perfectly
+reads as late by the entire output latency: ~20–40ms wired (a grading
+band) and 150–250ms over Bluetooth (two or more). `AudioSessionSetup`
+reports it as `outputLatency + ioBufferDuration`, and the session is now
+activated at the top of `PracticeSession.start()` rather than inside
+`ScratchAudioEngine.start()` — `outputLatency` reads 0 on an inactive
+session, which is well after the anchor is taken.
+
+The remaining uncompensated term is the ~7ms group delay of
+`VelocitySmoother`'s low-pass, which makes measured peaks slightly late.
+Segmenting on the unsmoothed signal would remove it, but the smoother
+also rejects noise that would otherwise cross the segmenter's start
+threshold and manufacture more spurious strokes — a bad trade for 7ms
+against a compensated 20–250ms.
 
 This matters because it's what makes "play on the click" actually mean
 "score well". Previously the grid started from whenever CoreMotion's
@@ -448,6 +499,12 @@ On first launch you'll get a 3-step flow instead of the main tabs:
   (`PerfectRunCurve`)
 - Phase 4 logic: screen-up/down orientation detection from the gravity
   vector (`OrientationCalibrator`)
+- Timing diagnosis: that a steady-but-fast run is reported as rushing at
+  the tempo actually played (even though its per-target errors wrap), that
+  an even-tempo-but-jittery run is reported as uneven instead, that a
+  steady on-tempo run offset from the beat is reported as an offset, and
+  that low-velocity wind-up flicks are excluded from the estimate
+  (`TimingDiagnosis`)
 
 None of this requires a device — it's all pure Swift over synthetic and
 recorded data. (The AVAudioEngine/Core Motion/AVAudioSession/SwiftData
@@ -478,6 +535,7 @@ ScratchLab/
     DrillTimeline.swift      Beat grid -> wall-clock seconds
     DrillScorer.swift        Live hit/upcoming/missed status per target stroke
     PerfectRunCurve.swift    Reference "perfect run" trace for a pattern
+    TimingDiagnosis.swift    Tempo / consistency / alignment analysis of a run
     OrientationCalibrator.swift  Screen-up/down detection from gravity.z
   Audio/
     LatencyClickPlayer.swift    Phase 0's click-on-threshold probe
@@ -487,6 +545,7 @@ ScratchLab/
     Metronome.swift             Eighth-note click, accented on the beat
     DrillPreviewPlayer.swift    Rough audio preview of a drill's target pattern
     SampleLibrary.swift         Loads/converts bundled audio -> mono Float32
+    AudioSessionSetup.swift     Shared session activation + output latency
   Drill/
     BuiltInDrills.swift      Built-in ScratchPattern content (baby scratch family)
     DrillResult.swift        SwiftData @Model for persisted scores

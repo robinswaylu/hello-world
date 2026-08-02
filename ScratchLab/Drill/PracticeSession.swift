@@ -45,6 +45,7 @@ final class PracticeSession: ObservableObject {
     @Published private(set) var statuses: [TargetStrokeStatus]
     @Published private(set) var liveSamples: [(timestamp: TimeInterval, velocity: Double)] = []
     @Published private(set) var finalResult: MatchResult?
+    @Published private(set) var finalDiagnosis: TimingDiagnosis?
     @Published private(set) var streak: Int = 0
     @Published private(set) var bestStreak: Int = 0
     @Published private(set) var latestJudgement: Judgement?
@@ -127,8 +128,22 @@ final class PracticeSession: ObservableObject {
         // well. CMDeviceMotion timestamps share systemUptime's base, so a
         // grid start expressed in this clock is directly comparable to
         // them.
+        // Activate the session before anything else so the latency read
+        // below is valid - it reports 0 on an inactive session.
+        AudioSessionSetup.activate()
+        let outputLatency = AudioSessionSetup.outputLatency
+
+        // `anchor` is when tick 0 is *scheduled*; `heardAnchor` is when it
+        // actually reaches the player's ears. Everything the player reacts
+        // to - the clicks, the countdown - is on the heard timeline, and
+        // their motion follows what they hear, so the scoring grid has to
+        // sit on that timeline too. Gyro timestamps carry no such delay,
+        // so without this offset a player following the click perfectly
+        // reads as systematically late by the whole output latency: a
+        // grading band on wired output, two or more over Bluetooth.
         let anchor = ProcessInfo.processInfo.systemUptime
-        let runStart = anchor + Double(Self.countdownBeats) * beatDuration
+        let heardAnchor = anchor + outputLatency
+        let runStart = heardAnchor + Double(Self.countdownBeats) * beatDuration
 
         // onTick fires from the metronome's own tick loop, not the main
         // actor, so the visual pulse this drives has to hop back.
@@ -337,6 +352,7 @@ final class PracticeSession: ObservableObject {
     private func finish(strokes: [ScratchStroke], modelContext: ModelContext) {
         let result = PatternMatcher.match(pattern: pattern, performed: strokes)
         finalResult = result
+        finalDiagnosis = TimingDiagnosis.analyze(pattern: pattern, strokes: strokes, result: result)
         phase = .finished
         stop()
 

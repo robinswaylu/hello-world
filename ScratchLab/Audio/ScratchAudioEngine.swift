@@ -75,9 +75,9 @@ final class ScratchAudioEngine {
     }
 
     private func configureSession() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default, options: [])
-        try session.setPreferredIOBufferDuration(0.005)
-        try session.setActive(true)
+        // Shared with PracticeSession, which has to activate the session
+        // earlier than this (before taking its timing anchor) so it can
+        // read a valid output latency. Idempotent either way.
+        AudioSessionSetup.activate()
     }
 }
