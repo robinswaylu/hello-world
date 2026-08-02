@@ -249,7 +249,9 @@ This repo currently contains:
 ## Using the Phase 3 drill player
 
 1. Switch to the **Drills** tab. Currently just the baby scratch family:
-   80/90/120 BPM.
+   80/90/120 BPM on eighth notes, plus a **90 BPM Double Time** on
+   sixteenths — same tempo and same 13.3s length, but four strokes per
+   beat instead of two (64 strokes rather than 32).
 2. Tap a drill to open its detail screen. It charts a **perfect run** —
    every target on time, in the right direction, each hump peaking exactly
    at its dot — so you can see the shape you're aiming for before you
@@ -370,10 +372,20 @@ apart by tens of milliseconds over a drill — a whole grading band. Now a
 forward target lands on an accented click by construction and stays
 there.
 
-Every stroke in the built-in drills uses a 100ms timing tolerance except
-the first, which gets 250ms. Even with the empty lead-in bar in front of
-it, the first target is still the only one with no preceding stroke to
-establish the rhythm, so it keeps the wider window.
+The eighth-note drills use a 100ms timing tolerance per stroke (250ms for
+the first, which is the only one with no preceding stroke to establish
+the rhythm, even with the lead-in bar in front of it). The double-time
+drill halves both to 50ms/125ms, keeping tolerance at the same
+*proportion* of its stroke spacing — so it's the same difficulty rather
+than an unplayably wide window.
+
+That scaling isn't just about feel. A target matches any stroke within 3×
+its tolerance, and since targets alternate direction, the nearest
+same-direction target is two slots away. At double-time spacing (167ms),
+a flat 100ms tolerance would give a ±300ms window reaching a
+same-direction target 333ms away — close enough to grab the wrong stroke.
+A unit test asserts every built-in drill's match window stays clear of
+its next same-direction target.
 
 **Which performed stroke a target grades.** Each target takes the nearest
 stroke within 3× its tolerance, but *prefers one going the direction it

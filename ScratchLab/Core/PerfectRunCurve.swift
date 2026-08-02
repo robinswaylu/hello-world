@@ -57,7 +57,8 @@ enum PerfectRunCurve {
         let beatDuration = DrillTimeline.beatDuration(bpm: pattern.bpm)
         let strokeDuration = gapBeats(for: pattern) * beatDuration
         guard strokeDuration > 0 else { return 0 }
-        return nominalStrokeDisplacement * Double.pi / (2 * strokeDuration)
+        let displacement = pattern.nominalStrokeDisplacement ?? nominalStrokeDisplacement
+        return displacement * Double.pi / (2 * strokeDuration)
     }
 
     /// Spacing between consecutive targets, in beats.

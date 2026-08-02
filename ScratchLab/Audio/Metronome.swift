@@ -32,7 +32,13 @@ final class Metronome {
         try? engine.start()
     }
 
-    /// Starts ticking eighth notes from `anchor`, a `systemUptime` value.
+    /// Starts ticking `subdivisionsPerBeat` times per beat from `anchor`, a
+    /// `systemUptime` value, accenting the first tick of each beat.
+    ///
+    /// The caller passes the drill's own stroke subdivision so every
+    /// stroke gets a click: 2 for an eighth-note drill, 4 for a
+    /// double-time one. Hardcoding eighths would leave half a double-time
+    /// drill's strokes with nothing to hit.
     ///
     /// Every tick is scheduled against an absolute deadline derived from
     /// `anchor`, never by sleeping one interval at a time in a loop. A
@@ -46,9 +52,10 @@ final class Metronome {
     /// Taking `anchor` from the caller rather than reading the clock here
     /// is what phase-locks the click to the scoring grid: `PracticeSession`
     /// derives both from the same value.
-    func start(bpm: Double, anchor: TimeInterval) {
+    func start(bpm: Double, anchor: TimeInterval, subdivisionsPerBeat: Int = 2) {
         stop()
-        let interval = (60.0 / bpm) / 2
+        let divisions = max(subdivisionsPerBeat, 1)
+        let interval = (60.0 / bpm) / Double(divisions)
 
         tickTask = Task { [weak self] in
             var index = 0
@@ -68,7 +75,7 @@ final class Metronome {
                 }
                 guard !Task.isCancelled else { return }
 
-                self?.tick(isDownbeat: index % 2 == 0)
+                self?.tick(isDownbeat: index % divisions == 0)
                 index += 1
             }
         }

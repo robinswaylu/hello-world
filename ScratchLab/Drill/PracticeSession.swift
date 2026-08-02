@@ -138,7 +138,10 @@ final class PracticeSession: ObservableObject {
                 self?.isDownbeatTick = isDownbeat
             }
         }
-        metronome.start(bpm: pattern.bpm, anchor: anchor)
+        // Subdivide to the drill's own stroke spacing so every stroke has
+        // a click, whether it's on eighths or double-time sixteenths.
+        let subdivisionsPerBeat = Int((1.0 / PerfectRunCurve.gapBeats(for: pattern)).rounded())
+        metronome.start(bpm: pattern.bpm, anchor: anchor, subdivisionsPerBeat: subdivisionsPerBeat)
         UIApplication.shared.isIdleTimerDisabled = true
 
         countdownTask = Task {

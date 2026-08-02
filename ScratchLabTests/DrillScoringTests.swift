@@ -257,6 +257,62 @@ final class PerfectRunCurveTests: XCTestCase {
     }
 }
 
+final class BuiltInDrillsTests: XCTestCase {
+    private var doubleTime: ScratchPattern { BuiltInDrills.babyScratchDoubleTime90 }
+    private var eighths: ScratchPattern { BuiltInDrills.babyScratchMedium }
+
+    func testDoubleTimeHasTwiceTheStrokesAtHalfTheSpacing() {
+        XCTAssertEqual(doubleTime.strokes.count, eighths.strokes.count * 2)
+        XCTAssertEqual(PerfectRunCurve.gapBeats(for: doubleTime), 0.25, accuracy: 0.0001)
+        // Same wall-clock length - it's the same tempo, just subdivided.
+        XCTAssertEqual(
+            DrillTimeline.totalDuration(pattern: doubleTime),
+            DrillTimeline.totalDuration(pattern: eighths),
+            accuracy: 0.0001
+        )
+    }
+
+    func testDoubleTimeStillAlternatesDirectionFromForward() {
+        for (index, stroke) in doubleTime.strokes.enumerated() {
+            XCTAssertEqual(stroke.direction, index % 2 == 0 ? .forward : .back, "stroke \(index)")
+        }
+    }
+
+    func testEveryDrillsMatchWindowStaysClearOfTheNextSameDirectionTarget() {
+        // A target matches any stroke within 3x its tolerance. Targets
+        // alternate direction, so the nearest same-direction target is two
+        // slots away - if the window reached that far, direction-preferring
+        // matching could grab the wrong stroke entirely. This is why the
+        // double-time drill's tolerance had to shrink with its spacing
+        // rather than inherit the flat 100ms.
+        for pattern in BuiltInDrills.all {
+            let gapSeconds = PerfectRunCurve.gapBeats(for: pattern) * DrillTimeline.beatDuration(bpm: pattern.bpm)
+            let sameDirectionGap = gapSeconds * 2
+            // Skip the first stroke, which is deliberately given a wider
+            // window and has no preceding target to be confused with.
+            for stroke in pattern.strokes.dropFirst() {
+                let window = (stroke.timingToleranceMs / 1000.0) * 3
+                XCTAssertLessThan(window, sameDirectionGap, "\(pattern.id) window overlaps the next same-direction target")
+            }
+        }
+    }
+
+    func testDoubleTimeAsksForAReachablePeakVelocity() {
+        // Inheriting the eighth-note throw would demand ~10.4 rad/s here;
+        // the shorter double-time throw keeps it in the same range as the
+        // other drills, which is what stops amplitude from failing every
+        // stroke the way the old 33 1/3 reference did.
+        let peak = PerfectRunCurve.targetPeakVelocity(for: doubleTime)
+        XCTAssertGreaterThan(peak, PerfectRunCurve.targetPeakVelocity(for: eighths))
+        XCTAssertLessThan(peak, 8.0)
+    }
+
+    func testDrillIDsAreUnique() {
+        let ids = BuiltInDrills.all.map(\.id)
+        XCTAssertEqual(Set(ids).count, ids.count, "drill ids must be unique - best scores are keyed on them")
+    }
+}
+
 final class DrillScorerIncrementalTests: XCTestCase {
     private func twoTargetPattern() -> ScratchPattern {
         ScratchPattern(
