@@ -48,6 +48,7 @@ final class PracticeSession: ObservableObject {
     @Published private(set) var streak: Int = 0
     @Published private(set) var bestStreak: Int = 0
     @Published private(set) var latestJudgement: Judgement?
+    @Published private(set) var beatTick: Int = 0
 
     let pattern: ScratchPattern
 
@@ -113,7 +114,14 @@ final class PracticeSession: ObservableObject {
         stop()
         // Metronome runs through the count-in too, and each countdown step
         // takes one beat, so "3, 2, 1" actually lands on the click instead
-        // of an arbitrary fixed second.
+        // of an arbitrary fixed second. onTick fires from the metronome's
+        // own tick loop, not the main actor, so the visual pulse this
+        // drives has to hop back explicitly.
+        metronome.onTick = { [weak self] in
+            Task { @MainActor in
+                self?.beatTick += 1
+            }
+        }
         metronome.start(bpm: pattern.bpm)
         UIApplication.shared.isIdleTimerDisabled = true
 

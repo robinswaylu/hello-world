@@ -254,14 +254,21 @@ This repo currently contains:
    of the target pattern (a real accelerate/decelerate scratch stroke per
    target, not just a tone).
 3. Tap **Start Practice**. A metronome starts immediately and a 3-2-1
-   countdown runs one beat per count, then the drill auto-starts: live
-   audio scratches as you move the platter (same engine as the Scratch
-   tab), and the chart shows target strokes colored by grade (gray =
-   upcoming, yellow = perfect, green = great, cyan = good, orange = poor,
-   red = missed) with your live velocity curve overlaid. Each stroke pops
-   a judgement (PERFECT!/GREAT/GOOD/POOR/MISSED) the instant it's graded,
-   and a streak counter tracks consecutive good-enough hits.
-4. The drill auto-stops once its bars are up and shows a score breakdown
+   countdown runs one beat per count. The countdown screen also shows an
+   arrow for the first stroke's direction (up = forward, down = back) —
+   every later stroke is telegraphed by the one before it, but the first
+   one isn't, so this is the only advance warning you get. A small cyan
+   light blinks on every beat, through both the countdown and the run, as
+   a visual companion to the audible click.
+4. Then the drill auto-starts: live audio scratches as you move the
+   platter (same engine as the Scratch tab), and the chart shows target
+   strokes colored by grade (gray = upcoming, yellow = perfect, green =
+   great, cyan = good, orange = poor, red = missed) with your live
+   velocity curve overlaid and faint vertical lines marking each bar
+   boundary. Each stroke pops a judgement (PERFECT!/GREAT/GOOD/POOR/
+   MISSED) the instant it's graded, and a streak counter tracks
+   consecutive good-enough hits.
+5. The drill auto-stops once its bars are up and shows a score breakdown
    with a grade per stroke, plus a **Replay** button that restarts the same
    drill (3-2-1 countdown and all) without backing out to the drill list.
    Backing out and reopening the drill shows your best score in the list.
@@ -288,6 +295,12 @@ now the same thing as scoring Perfect — it isn't just a direction label
 anymore. Direction is still a separate hard gate above both of these:
 wrong direction caps a stroke at Poor no matter how well-timed or
 well-powered it was.
+
+Every stroke in the built-in drills uses a 100ms timing tolerance except
+the first, which gets 250ms. The first target lands the instant the
+countdown hands off to the drill, with none of the lead-in every later
+stroke gets from the one before it, so the extra buffer covers that
+reaction-time gap rather than punishing it.
 
 ## First launch (onboarding)
 

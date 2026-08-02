@@ -8,6 +8,7 @@ struct PracticeView: View {
     @AppStorage("hapticsEnabled") private var hapticsEnabled = false
     @State private var popupJudgement: Judgement?
     @State private var streakPulse = false
+    @State private var metronomeLit = false
 
     init(pattern: ScratchPattern) {
         _session = StateObject(wrappedValue: PracticeSession(pattern: pattern))
@@ -17,8 +18,14 @@ struct PracticeView: View {
         Group {
             switch session.phase {
             case .countdown(let count):
-                Text("\(count)")
-                    .font(.system(size: 72, weight: .bold))
+                VStack(spacing: 20) {
+                    Text("\(count)")
+                        .font(.system(size: 72, weight: .bold))
+                    if let firstDirection = session.pattern.strokes.first?.direction {
+                        firstStrokeArrow(for: firstDirection)
+                    }
+                    metronomeLight
+                }
             case .running:
                 runningContent
             case .finished:
@@ -39,6 +46,9 @@ struct PracticeView: View {
         }
         .onChange(of: session.streak) { _, _ in
             pulseStreak()
+        }
+        .onChange(of: session.beatTick) { _, _ in
+            pulseMetronomeLight()
         }
         .overlay(alignment: .top) {
             if let popupJudgement {
@@ -90,12 +100,41 @@ struct PracticeView: View {
         }
     }
 
+    // The metronome already ticks audibly through the countdown and the
+    // run; this just gives that same beat a visual pulse too, since a
+    // click alone is easy to lose track of over background/game audio.
+    @MainActor
+    private func pulseMetronomeLight() {
+        metronomeLit = true
+        Task {
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            metronomeLit = false
+        }
+    }
+
+    private var metronomeLight: some View {
+        Circle()
+            .fill(metronomeLit ? Color.cyan : Color.cyan.opacity(0.2))
+            .frame(width: 14, height: 14)
+            .animation(.easeOut(duration: 0.08), value: metronomeLit)
+    }
+
+    // Shown only during the countdown - the first target has no lead-in
+    // stroke to telegraph its direction the way every later one does, so
+    // this is the only warning you get before it's live.
+    private func firstStrokeArrow(for direction: Direction) -> some View {
+        Image(systemName: direction == .forward ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+            .font(.system(size: 40))
+            .foregroundStyle(direction == .forward ? Color.blue : Color.purple)
+    }
+
     private var runningContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text(String(format: "%.1fs elapsed", session.elapsedTime))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                metronomeLight
                 Spacer()
                 streakBadge
             }
@@ -152,6 +191,16 @@ struct PracticeView: View {
         }
 
         return Canvas { context, size in
+            // Bar separators, so the 32 alternating strokes read as four
+            // bars of eight rather than one undifferentiated row of dots.
+            var barLines = Path()
+            for bar in 1..<session.pattern.bars {
+                let x = xPosition(beat: Double(bar) * DrillTimeline.beatsPerBar, width: size.width)
+                barLines.move(to: CGPoint(x: x, y: 0))
+                barLines.addLine(to: CGPoint(x: x, y: size.height))
+            }
+            context.stroke(barLines, with: .color(.gray.opacity(0.3)), lineWidth: 1)
+
             if liveSamples.count > 1 {
                 var path = Path()
                 for (index, sample) in liveSamples.enumerated() {

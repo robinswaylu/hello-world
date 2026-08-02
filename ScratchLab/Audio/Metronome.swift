@@ -9,6 +9,13 @@ final class Metronome {
     private var clickBuffer: AVAudioPCMBuffer?
     private var tickTask: Task<Void, Never>?
 
+    /// Fires on every beat, same cadence as the audible click - lets a view
+    /// drive a visual metronome indicator (e.g. a blinking dot) in sync,
+    /// not just the sound. Called from this instance's own tick loop, not
+    /// the main actor - callers that touch UI state need to hop back
+    /// themselves.
+    var onTick: (() -> Void)?
+
     init() {
         buildClickBuffer()
         engine.attach(player)
@@ -35,6 +42,7 @@ final class Metronome {
     }
 
     private func tick() {
+        onTick?()
         guard let clickBuffer else { return }
         player.scheduleBuffer(clickBuffer, at: nil, options: .interrupts)
         if !player.isPlaying {
