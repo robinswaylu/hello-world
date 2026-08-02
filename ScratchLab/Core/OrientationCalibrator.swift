@@ -1,6 +1,6 @@
 import Foundation
 
-enum ScreenOrientation: Equatable {
+enum ScreenOrientation: String, Equatable, Codable {
     case screenUp
     case screenDown
 }

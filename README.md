@@ -78,6 +78,28 @@ This repo currently contains:
   - **Drill list trimmed** to just the baby scratch family (80/90/120 BPM)
     while this feel is being tuned; drag/scribble/release-timing/tempo
     ladder will come back once it's right.
+- **Follow-up fixes**, after testing the pass above surfaced two more
+  real bugs:
+  - **Direction was still reversed.** The sign fix above only changed the
+    *code* that computes the calibration multiplier — it didn't touch an
+    *already-stored* calibration value from before the fix, and since
+    onboarding had already been completed, the app never re-prompted for
+    it. `CalibrationStore` now persists the detected *orientation*
+    (screen-up/down), not a derived sign number, and `ScratchController`/
+    `PracticeSession` both auto-detect orientation fresh from the first
+    sample's gravity reading at the start of every session — no stale
+    calibration is possible anymore, and no manual recalibration is
+    needed after a future sign-convention fix either.
+  - **Practice mode had noticeable audio lag.** `PracticeSession` was
+    publishing the growing sample history and recomputing scoring state
+    on every single ~100Hz motion sample, all on the main thread — same
+    thread `audioEngine.setRate()` needs promptly. Expensive chart/
+    animation rendering could delay that call, making the scratch sound
+    audibly lag behind the hand motion driving it. The audio and scoring
+    math still run at full rate (that precision matters), but the
+    `@Published` UI-facing state is now throttled and decimated to
+    ~33Hz, cutting how much rendering work competes with the real-time
+    audio path.
 
 ## Requirements
 

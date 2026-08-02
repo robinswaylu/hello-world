@@ -20,6 +20,19 @@ struct Judgement: Equatable {
 /// for tempo reference, live scoring against the target pattern, and
 /// persisting the final result. Auto-starts after the countdown and
 /// auto-stops once the pattern's duration has elapsed.
+///
+/// The audio-critical path (rate calculation, `audioEngine.setRate`) and
+/// the scoring path (segmentation, judgement detection) run on every
+/// single motion sample (~100Hz) - that precision matters for both how
+/// responsive the scratch sounds and how accurately strokes are timed.
+/// But publishing state for SwiftUI to render (the growing chart, per-
+/// stroke animations) is comparatively expensive, and doing that at
+/// 100Hz too competes for the same main thread the audio path needs -
+/// if rendering falls behind, `setRate` calls get delayed right along
+/// with it, and the scratch audibly lags behind your hand. So the
+/// `@Published` UI-facing properties are only updated (and the sample
+/// history decimated) every `uiUpdateStride` samples - fast enough to
+/// look and feel smooth, far cheaper to render.
 @MainActor
 final class PracticeSession: ObservableObject {
     @Published private(set) var phase: PracticePhase = .countdown(3)
@@ -46,6 +59,13 @@ final class PracticeSession: ObservableObject {
     private let totalDuration: TimeInterval
     private let beatDuration: TimeInterval
 
+    // Full-rate internal state (never throttled) - segmentation and
+    // judgement detection both need every sample to stay accurate.
+    private var rawLiveSamples: [(timestamp: TimeInterval, velocity: Double)] = []
+    private var lastComputedStatuses: [TargetStrokeStatus]
+    private var uiSampleCounter = 0
+    private let uiUpdateStride = 3 // ~33Hz UI refresh at 100Hz capture
+
     init(pattern: ScratchPattern, rotationStream: RotationStream = RotationStream()) {
         self.pattern = pattern
         self.rotationStream = rotationStream
@@ -55,7 +75,9 @@ final class PracticeSession: ObservableObject {
         )
         self.totalDuration = DrillTimeline.totalDuration(pattern: pattern)
         self.beatDuration = DrillTimeline.beatDuration(bpm: pattern.bpm)
-        self.statuses = pattern.strokes.map { _ in .upcoming }
+        let initialStatuses = pattern.strokes.map { _ in TargetStrokeStatus.upcoming }
+        self.statuses = initialStatuses
+        self.lastComputedStatuses = initialStatuses
     }
 
     func start(modelContext: ModelContext) {
@@ -92,6 +114,11 @@ final class PracticeSession: ObservableObject {
         startTimestamp = nil
         elapsedTime = 0
         liveSamples = []
+        rawLiveSamples = []
+        let initialStatuses = pattern.strokes.map { _ in TargetStrokeStatus.upcoming }
+        statuses = initialStatuses
+        lastComputedStatuses = initialStatuses
+        uiSampleCounter = 0
         streak = 0
         bestStreak = 0
         try? audioEngine.start()
@@ -106,11 +133,16 @@ final class PracticeSession: ObservableObject {
     private func ingest(_ sample: RotationSample, modelContext: ModelContext) {
         if startTimestamp == nil {
             startTimestamp = sample.timestamp
+            // Re-detect screen-up/down fresh every attempt from the first
+            // sample's gravity reading - see ScratchController.ingest for
+            // why this can't just trust a stored value from onboarding.
+            CalibrationStore.orientation = OrientationCalibrator.orientation(gravityZ: sample.gravityZ)
         }
         guard let startTimestamp else { return }
         let elapsed = sample.timestamp - startTimestamp
-        elapsedTime = elapsed
 
+        // Audio-critical: every sample, unthrottled. Never gate this
+        // behind anything that could be slow.
         let z = sample.z * CalibrationStore.signMultiplier
         _ = baselineEstimator.ingest(z)
         let corrected = baselineEstimator.correctedVelocity(z)
@@ -118,15 +150,32 @@ final class PracticeSession: ObservableObject {
         let reference = BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
         audioEngine.setRate(smoothed / reference)
 
-        liveSamples.append((timestamp: elapsed, velocity: smoothed))
-        let strokes = segmenter.segment(liveSamples)
+        // Scoring: also every sample - stroke timing accuracy depends on it.
+        rawLiveSamples.append((timestamp: elapsed, velocity: smoothed))
+        let strokes = segmenter.segment(rawLiveSamples)
         let newStatuses = DrillScorer.statuses(pattern: pattern, performed: strokes, elapsedTime: elapsed)
-        applyNewJudgements(previous: statuses, current: newStatuses)
-        statuses = newStatuses
+        applyNewJudgements(previous: lastComputedStatuses, current: newStatuses)
+        lastComputedStatuses = newStatuses
 
-        if elapsed >= totalDuration {
+        let isFinalSample = elapsed >= totalDuration
+
+        // UI-facing: throttled + decimated, since this is what's actually
+        // expensive to render, not the math above.
+        uiSampleCounter += 1
+        if uiSampleCounter % uiUpdateStride == 0 || isFinalSample {
+            elapsedTime = elapsed
+            statuses = newStatuses
+            liveSamples = decimated(rawLiveSamples)
+        }
+
+        if isFinalSample {
             finish(strokes: strokes, modelContext: modelContext)
         }
+    }
+
+    private func decimated(_ samples: [(timestamp: TimeInterval, velocity: Double)]) -> [(timestamp: TimeInterval, velocity: Double)] {
+        guard samples.count > uiUpdateStride else { return samples }
+        return stride(from: 0, to: samples.count, by: uiUpdateStride).map { samples[$0] }
     }
 
     /// A target only just now stopped being `.upcoming` - that's the moment

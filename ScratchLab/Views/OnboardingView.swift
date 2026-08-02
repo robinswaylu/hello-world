@@ -95,7 +95,7 @@ struct OnboardingView: View {
 
             let averageGravityZ = gravitySamples.reduce(0, +) / Double(max(gravitySamples.count, 1))
             let orientation = OrientationCalibrator.orientation(gravityZ: averageGravityZ)
-            CalibrationStore.signMultiplier = OrientationCalibrator.signMultiplier(for: orientation)
+            CalibrationStore.orientation = orientation
             detectedOrientation = orientation
             isCalibrating = false
         }
