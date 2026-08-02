@@ -139,6 +139,10 @@ final class GestureSegmenterTests: XCTestCase {
 }
 
 final class PatternMatcherTests: XCTestCase {
+    private var referenceVelocity: Double {
+        BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
+    }
+
     private func babyScratchPattern() -> ScratchPattern {
         ScratchPattern(
             id: "test-baby-scratch",
@@ -158,8 +162,8 @@ final class PatternMatcherTests: XCTestCase {
         let pattern = babyScratchPattern()
         let beatDuration = 60.0 / pattern.bpm
         let performed = [
-            ScratchStroke(startTime: 0, endTime: 0.1, direction: .forward, peakVelocity: 3, displacement: 0.5),
-            ScratchStroke(startTime: 0.5 * beatDuration, endTime: 0.5 * beatDuration + 0.1, direction: .back, peakVelocity: 3, displacement: 0.5),
+            ScratchStroke(startTime: 0, endTime: 0.1, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5),
+            ScratchStroke(startTime: 0.5 * beatDuration, endTime: 0.5 * beatDuration + 0.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5),
         ]
         let result = PatternMatcher.match(pattern: pattern, performed: performed)
         XCTAssertEqual(result.overallScore, 100, accuracy: 0.5)
@@ -190,12 +194,13 @@ final class PatternMatcherTests: XCTestCase {
     func testDisplacementOutOfRangeIsRecordedButDoesNotAffectScore() {
         let pattern = babyScratchPattern()
         let performed = [
-            ScratchStroke(startTime: 0, endTime: 0.1, direction: .forward, peakVelocity: 3, displacement: 5.0),
-            ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: 3, displacement: 0.5),
+            ScratchStroke(startTime: 0, endTime: 0.1, direction: .forward, peakVelocity: referenceVelocity, displacement: 5.0),
+            ScratchStroke(startTime: 30, endTime: 30.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5),
         ]
         let result = PatternMatcher.match(pattern: pattern, performed: performed)
         // Displacement isn't part of the score (no built-in drill currently
-        // constrains it) - perfect timing + correct direction is still 100.
+        // constrains it) - perfect timing + amplitude + correct direction
+        // is still 100.
         XCTAssertFalse(result.strokeScores[0].displacementOk)
         XCTAssertEqual(result.strokeScores[0].grade, .perfect)
         XCTAssertEqual(result.strokeScores[0].score, 100, accuracy: 0.5)

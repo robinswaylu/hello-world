@@ -36,9 +36,15 @@ final class DrillScorerTests: XCTestCase {
         XCTAssertEqual(statuses, [.missed])
     }
 
+    private var referenceVelocity: Double {
+        BaselineEstimator.angularVelocity(forRPM: BaselineEstimator.rpm33)
+    }
+
     func testHitWhenMatched() {
         let pattern = singleTargetPattern()
-        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .forward, peakVelocity: 3, displacement: 0.5)
+        // Perfect timing and peak velocity right at the reference - both
+        // axes score Perfect, so the overall grade is Perfect too.
+        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5)
         let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
 
         guard case .hit(let grade, let score) = statuses[0] else {
@@ -50,7 +56,7 @@ final class DrillScorerTests: XCTestCase {
 
     func testWrongDirectionIsGradedPoorWithLowScore() {
         let pattern = singleTargetPattern()
-        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .back, peakVelocity: 3, displacement: 0.5)
+        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5)
         let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
 
         guard case .hit(let grade, let score) = statuses[0] else {
@@ -60,6 +66,36 @@ final class DrillScorerTests: XCTestCase {
         // a different move, not an imprecise version of the right one.
         XCTAssertEqual(grade, .poor)
         XCTAssertEqual(score, 20, accuracy: 0.5)
+    }
+
+    func testPerfectTimingButWeakStrokeIsCappedByAmplitude() {
+        let pattern = singleTargetPattern()
+        // Timing is dead-on, but peak velocity is well under the target -
+        // scoring well on timing alone shouldn't be enough for a good
+        // grade if the stroke was never actually powered up to reach it.
+        let stroke = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .forward, peakVelocity: referenceVelocity * 0.4, displacement: 0.5)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.05)
+
+        guard case .hit(let grade, _) = statuses[0] else {
+            return XCTFail("expected a hit, got \(statuses[0])")
+        }
+        XCTAssertEqual(grade, .poor)
+    }
+
+    func testAccurateAmplitudeButBadTimingIsCappedByTiming() {
+        let pattern = singleTargetPattern()
+        // Peak velocity is right on target, but the stroke happened 150ms
+        // late - well outside the 80ms tolerance (so timing alone grades
+        // Poor) while still inside the 3x-tolerance window that counts as
+        // a match at all. Symmetric to the case above: amplitude alone
+        // shouldn't rescue bad timing either.
+        let stroke = ScratchStroke(startTime: 2.15, endTime: 2.2, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5)
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [stroke], elapsedTime: 2.2)
+
+        guard case .hit(let grade, _) = statuses[0] else {
+            return XCTFail("expected a hit, got \(statuses[0])")
+        }
+        XCTAssertEqual(grade, .poor)
     }
 }
 

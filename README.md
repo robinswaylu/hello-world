@@ -262,8 +262,32 @@ This repo currently contains:
    a judgement (PERFECT!/GREAT/GOOD/POOR/MISSED) the instant it's graded,
    and a streak counter tracks consecutive good-enough hits.
 4. The drill auto-stops once its bars are up and shows a score breakdown
-   with a grade per stroke. Backing out and reopening the drill shows your
-   best score in the list.
+   with a grade per stroke, plus a **Replay** button that restarts the same
+   drill (3-2-1 countdown and all) without backing out to the drill list.
+   Backing out and reopening the drill shows your best score in the list.
+
+### How grading works
+
+Each target stroke is graded on two independent axes, and your final grade
+is whichever one is *worse* — nailing one doesn't compensate for badly
+missing the other:
+
+- **Timing**: how close your stroke's start is to the target's exact
+  moment, as a fraction of that target's own tolerance window.
+- **Amplitude**: how close your stroke's peak velocity comes to the
+  target's reference velocity (33⅓ RPM-equivalent — the same height the
+  practice chart draws the target dot at), as a fraction of a fixed
+  tolerance.
+
+Both are graded on the same rhythm-game-style bands (Perfect/Great/Good/
+Poor, tightest-to-loosest), so a stroke has to land both on time *and* at
+the right intensity for a true Perfect. This is also why the practice
+chart's target dot sits at a fixed height instead of a decoration: your
+velocity line's peak actually reaching that dot, at the right time, is
+now the same thing as scoring Perfect — it isn't just a direction label
+anymore. Direction is still a separate hard gate above both of these:
+wrong direction caps a stroke at Poor no matter how well-timed or
+well-powered it was.
 
 ## First launch (onboarding)
 
