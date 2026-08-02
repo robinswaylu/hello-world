@@ -4,7 +4,12 @@ import SwiftUI
 struct ScratchLabApp: App {
     var body: some Scene {
         WindowGroup {
-            Phase0View()
+            TabView {
+                Phase2View()
+                    .tabItem { Label("Scratch", systemImage: "waveform") }
+                Phase0View()
+                    .tabItem { Label("Diagnostics", systemImage: "gauge") }
+            }
         }
     }
 }

@@ -15,6 +15,14 @@ This repo currently contains:
   platter-state detection, velocity smoothing, stroke segmentation, and
   pattern scoring — unit-tested including against a real captured scratch
   burst from Phase 0 testing.
+- **Phase 2**: the scratch audio engine (`ScratchLab/Audio/`) — a custom
+  `AVAudioSourceNode` read-head that plays a sample forward/reverse at
+  whatever rate Phase 1's signal core reports, with a loop crossfade to
+  avoid clicks and a Bluetooth-route warning. Ships with a generated
+  440→880Hz sine sweep as the placeholder tone (real licensed scratch
+  samples are a follow-up content task, not something this repo can
+  source on its own). This is the new default **Scratch** tab; Phase 0's
+  harness is still there under **Diagnostics**.
 
 ## Requirements
 
@@ -33,9 +41,23 @@ This repo currently contains:
    your account).
 4. Run (`Cmd+R`).
 
+## Using the Phase 2 scratch demo
+
+1. Open the app to the **Scratch** tab (the default).
+2. If a Bluetooth output is connected you'll see a warning — switch to
+   wired headphones or a speaker; BT's 100-200ms lag makes scratching feel
+   broken.
+3. Place the phone flat (screen up) on a record on a turntable, or a
+   motor-off jog wheel.
+4. Move the platter/jog by hand — you should hear the placeholder sine
+   sweep scratch forward and reverse in sync with the motion, with no
+   clicking at the sample's loop point and no zippering on smooth moves.
+5. The readout shows the detected platter state (`motorOff`/`rpm33`/`rpm45`/
+   `unknown`) and the current playback rate ratio.
+
 ## Using the Phase 0 harness
 
-1. Place the phone flat (screen up) on a record on a turntable.
+1. Switch to the **Diagnostics** tab. Place the phone flat (screen up) on a record on a turntable.
 2. Tap **Start Capture**. Spin the platter at 33⅓ and 45 RPM, then try some
    aggressive scratch strokes by hand.
 3. Watch the live readout and chart for:
@@ -58,9 +80,15 @@ This repo currently contains:
 - Phase 1 logic: platter-state locking, velocity smoothing, stroke
   segmentation (including a real captured scratch burst), and pattern
   scoring
+- Phase 2 logic: the read-head's forward/reverse/fractional-rate math,
+  rate ramping (the anti-zipper mechanism), loop crossfading, and the
+  placeholder sine sweep generator
 
 None of this requires a device — it's all pure Swift over synthetic and
-recorded data.
+recorded data. (The AVAudioEngine/Core Motion/AVAudioSession glue that
+wraps this logic — `RotationStream`, `ScratchAudioEngine`,
+`BluetoothRouteMonitor` — is device-only and isn't unit tested; it's thin
+wrapping around the tested core.)
 
 ## Project layout
 
@@ -79,8 +107,15 @@ ScratchLab/
     VelocitySmoother.swift   Low-pass + slew limiting for the audio engine
     GestureSegmenter.swift   Splits a velocity stream into ScratchStrokes
     PatternMatcher.swift     Scores performed strokes against a ScratchPattern
-  Audio/LatencyClickPlayer.swift  AVAudioEngine click-on-threshold probe
+    ReadHead.swift           Phase 2's fractional read-head + rate ramping
+    LoopCrossfader.swift     Bakes a click-free crossfade into the loop point
+    SineSweepGenerator.swift Placeholder tone generator
+  Audio/
+    LatencyClickPlayer.swift    Phase 0's click-on-threshold probe
+    ScratchAudioEngine.swift    AVAudioSourceNode wrapping ReadHead
+    BluetoothRouteMonitor.swift Detects BT output, drives the warning
+    ScratchController.swift     Wires Core Motion -> Phase 1 -> ScratchAudioEngine
   Utilities/CSVExporter.swift     CSV formatting + temp-file export
-  Views/                     Phase0View, VelocityChartView, ShareSheet
+  Views/                     Phase0View, Phase2View, VelocityChartView, ShareSheet
 ScratchLabTests/             Unit tests for the pure-Swift pieces
 ```

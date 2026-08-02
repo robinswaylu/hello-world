@@ -26,6 +26,14 @@
 		1A0000000000000000001116 /* GestureSegmenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001016 /* GestureSegmenter.swift */; };
 		1A0000000000000000001117 /* PatternMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001017 /* PatternMatcher.swift */; };
 		1A0000000000000000001120 /* RotationCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000001020 /* RotationCoreTests.swift */; };
+		1A0000000000000000002110 /* ReadHead.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002010 /* ReadHead.swift */; };
+		1A0000000000000000002111 /* LoopCrossfader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002011 /* LoopCrossfader.swift */; };
+		1A0000000000000000002112 /* SineSweepGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002012 /* SineSweepGenerator.swift */; };
+		1A0000000000000000002113 /* ScratchAudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002013 /* ScratchAudioEngine.swift */; };
+		1A0000000000000000002114 /* BluetoothRouteMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002014 /* BluetoothRouteMonitor.swift */; };
+		1A0000000000000000002115 /* ScratchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002015 /* ScratchController.swift */; };
+		1A0000000000000000002116 /* Phase2View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002016 /* Phase2View.swift */; };
+		1A0000000000000000002120 /* ScratchAudioCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000002020 /* ScratchAudioCoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +68,14 @@
 		1A0000000000000000001016 /* GestureSegmenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureSegmenter.swift; sourceTree = "<group>"; };
 		1A0000000000000000001017 /* PatternMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternMatcher.swift; sourceTree = "<group>"; };
 		1A0000000000000000001020 /* RotationCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationCoreTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000002010 /* ReadHead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadHead.swift; sourceTree = "<group>"; };
+		1A0000000000000000002011 /* LoopCrossfader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopCrossfader.swift; sourceTree = "<group>"; };
+		1A0000000000000000002012 /* SineSweepGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SineSweepGenerator.swift; sourceTree = "<group>"; };
+		1A0000000000000000002013 /* ScratchAudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchAudioEngine.swift; sourceTree = "<group>"; };
+		1A0000000000000000002014 /* BluetoothRouteMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothRouteMonitor.swift; sourceTree = "<group>"; };
+		1A0000000000000000002015 /* ScratchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchController.swift; sourceTree = "<group>"; };
+		1A0000000000000000002016 /* Phase2View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase2View.swift; sourceTree = "<group>"; };
+		1A0000000000000000002020 /* ScratchAudioCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchAudioCoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,6 +148,9 @@
 				1A0000000000000000001015 /* VelocitySmoother.swift */,
 				1A0000000000000000001016 /* GestureSegmenter.swift */,
 				1A0000000000000000001017 /* PatternMatcher.swift */,
+				1A0000000000000000002010 /* ReadHead.swift */,
+				1A0000000000000000002011 /* LoopCrossfader.swift */,
+				1A0000000000000000002012 /* SineSweepGenerator.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -148,6 +167,9 @@
 			isa = PBXGroup;
 			children = (
 				1A000000000000000000000F /* LatencyClickPlayer.swift */,
+				1A0000000000000000002013 /* ScratchAudioEngine.swift */,
+				1A0000000000000000002014 /* BluetoothRouteMonitor.swift */,
+				1A0000000000000000002015 /* ScratchController.swift */,
 			);
 			path = Audio;
 			sourceTree = "<group>";
@@ -166,6 +188,7 @@
 				1A0000000000000000000011 /* Phase0View.swift */,
 				1A0000000000000000000012 /* VelocityChartView.swift */,
 				1A0000000000000000000013 /* ShareSheet.swift */,
+				1A0000000000000000002016 /* Phase2View.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -175,6 +198,7 @@
 			children = (
 				1A0000000000000000000014 /* ScratchLabTests.swift */,
 				1A0000000000000000001020 /* RotationCoreTests.swift */,
+				1A0000000000000000002020 /* ScratchAudioCoreTests.swift */,
 			);
 			path = ScratchLabTests;
 			sourceTree = "<group>";
@@ -286,6 +310,13 @@
 				1A0000000000000000001115 /* VelocitySmoother.swift in Sources */,
 				1A0000000000000000001116 /* GestureSegmenter.swift in Sources */,
 				1A0000000000000000001117 /* PatternMatcher.swift in Sources */,
+				1A0000000000000000002110 /* ReadHead.swift in Sources */,
+				1A0000000000000000002111 /* LoopCrossfader.swift in Sources */,
+				1A0000000000000000002112 /* SineSweepGenerator.swift in Sources */,
+				1A0000000000000000002113 /* ScratchAudioEngine.swift in Sources */,
+				1A0000000000000000002114 /* BluetoothRouteMonitor.swift in Sources */,
+				1A0000000000000000002115 /* ScratchController.swift in Sources */,
+				1A0000000000000000002116 /* Phase2View.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -295,6 +326,7 @@
 			files = (
 				1A000000000000000000010A /* ScratchLabTests.swift in Sources */,
 				1A0000000000000000001120 /* RotationCoreTests.swift in Sources */,
+				1A0000000000000000002120 /* ScratchAudioCoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
