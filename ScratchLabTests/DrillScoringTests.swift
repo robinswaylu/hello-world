@@ -82,6 +82,35 @@ final class DrillScorerTests: XCTestCase {
         XCTAssertEqual(grade, .poor)
     }
 
+    func testWindUpBlipDoesNotStealTheTargetFromTheRealStroke() {
+        let pattern = singleTargetPattern() // beat 4 @ 120bpm = 2.0s, .forward
+        // A short backward wind-up flick just before the real forward
+        // stroke - closer to the target in time, but the wrong direction.
+        // Direction-blind nearest-match would grade the blip and report a
+        // direction failure for a stroke the player got right.
+        let windUp = ScratchStroke(startTime: 1.99, endTime: 2.01, direction: .back, peakVelocity: referenceVelocity * 0.3, displacement: 0.05)
+        let real = ScratchStroke(startTime: 2.05, endTime: 2.2, direction: .forward, peakVelocity: referenceVelocity, displacement: 0.5)
+
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [windUp, real], elapsedTime: 2.3)
+        guard case .hit(let grade, _) = statuses[0] else {
+            return XCTFail("expected a hit, got \(statuses[0])")
+        }
+        XCTAssertNotEqual(grade, .poor, "the backward wind-up blip should not have been matched ahead of the real forward stroke")
+    }
+
+    func testWrongDirectionStillFailsWhenThereIsNoCorrectlyDirectedStroke() {
+        let pattern = singleTargetPattern()
+        // Only a backward stroke in range - the directional preference
+        // must not quietly excuse a genuinely wrong-direction attempt.
+        let onlyBackward = ScratchStroke(startTime: 2.0, endTime: 2.1, direction: .back, peakVelocity: referenceVelocity, displacement: 0.5)
+
+        let statuses = DrillScorer.statuses(pattern: pattern, performed: [onlyBackward], elapsedTime: 2.3)
+        guard case .hit(let grade, _) = statuses[0] else {
+            return XCTFail("expected a hit, got \(statuses[0])")
+        }
+        XCTAssertEqual(grade, .poor)
+    }
+
     func testAccurateAmplitudeButBadTimingIsCappedByTiming() {
         let pattern = singleTargetPattern()
         // Peak velocity is right on target, but the stroke happened 150ms

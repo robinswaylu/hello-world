@@ -311,6 +311,19 @@ the first, which gets 250ms. Even with the empty lead-in bar in front of
 it, the first target is still the only one with no preceding stroke to
 establish the rhythm, so it keeps the wider window.
 
+**Which performed stroke a target grades.** Each target takes the nearest
+stroke within 3× its tolerance, but *prefers one going the direction it
+asked for*, and only falls back to the nearest stroke of any direction
+when nothing correctly-directed is in range. Purely nearest-by-time
+matching turned out to be the cause of spurious "✗ dir" results on
+strokes that were played correctly: the natural wind-up flick before a
+stroke — and any gyro noise crossing the segmenter's start threshold —
+registers as its own short stroke in the *opposite* direction, often
+landing marginally closer to the target than the real stroke. The target
+graded the blip. The fallback keeps genuinely wrong-direction attempts
+honest: with no correctly-directed stroke in range, the wrong one is
+still matched and still capped at Poor.
+
 ## First launch (onboarding)
 
 On first launch you'll get a 3-step flow instead of the main tabs:

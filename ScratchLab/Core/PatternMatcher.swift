@@ -70,20 +70,49 @@ enum PatternMatcher {
             let targetTime = target.beatPosition * beatDuration
             let toleranceSeconds = target.timingToleranceMs / 1000.0
 
-            // Manual nearest-match scan instead of enumerated().filter().min()
-            // - this runs per target, so avoiding an intermediate array
+            // Prefer a stroke going the way this target actually asks for,
+            // and only fall back to the nearest stroke of any direction
+            // when there's no correctly-directed one in range at all.
+            //
+            // Nearest-by-time alone is fragile in exactly the situation
+            // these drills create. Targets alternate forward/back, and the
+            // natural wind-up flick before a stroke - plus any gyro noise
+            // that crosses the segmenter's start threshold - registers as
+            // its own short stroke in the *opposite* direction, landing
+            // slightly closer to the target than the real stroke does.
+            // Direction-blind matching hands the target that blip, so a
+            // stroke the player definitely performed correctly gets
+            // reported as a direction failure.
+            //
+            // Falling back to the nearest stroke of any direction keeps a
+            // genuinely wrong-direction performance honest: if nothing
+            // correctly-directed is in range, the wrong-direction stroke
+            // is still matched and still capped at .poor by `grade`.
+            //
+            // Manual scan rather than enumerated().filter().min() - this
+            // runs per target, so avoiding an intermediate array
             // allocation on every call matters when it's called often.
+            let matchWindow = toleranceSeconds * 3
             var bestIndex: Int?
             var bestDistance = Double.greatestFiniteMagnitude
+            var bestDirectedIndex: Int?
+            var bestDirectedDistance = Double.greatestFiniteMagnitude
+
             for (performedIndex, stroke) in performed.enumerated() where !usedPerformedIndices.contains(performedIndex) {
                 let distance = abs(stroke.startTime - targetTime)
+                guard distance <= matchWindow else { continue }
+
                 if distance < bestDistance {
                     bestDistance = distance
                     bestIndex = performedIndex
                 }
+                if stroke.direction == target.direction, distance < bestDirectedDistance {
+                    bestDirectedDistance = distance
+                    bestDirectedIndex = performedIndex
+                }
             }
 
-            guard let performedIndex = bestIndex, bestDistance <= toleranceSeconds * 3 else {
+            guard let performedIndex = bestDirectedIndex ?? bestIndex else {
                 scores.append(StrokeScore(targetIndex: targetIndex, matched: false, timingErrorMs: nil, directionCorrect: false, displacementOk: false, grade: .missed, score: 0))
                 continue
             }
